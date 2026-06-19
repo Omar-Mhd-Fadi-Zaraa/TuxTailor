@@ -1,26 +1,174 @@
-html {
-    background-color: rgba(27, 38, 54, 1);
-    text-align: center;
-    color: white;
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Design tokens ── */
+:root {
+    /* Backgrounds */
+    --main-bg:      #212121;
+    --sidebar-bg:   #171717;
+    --panel-bg:     #2a2a2a;
+    --input-bg:     #2f2f2f;
+    --thinking-bg:  #1e1e1e;
+    --hover-bg:     rgba(255, 255, 255, 0.06);
+    --active-bg:    rgba(255, 255, 255, 0.1);
+    --user-msg-bg:  #2f2f2f;
+
+    /* Text */
+    --text:         #ececec;
+    --text-muted:   #9b9b9b;
+    --text-faint:   #555;
+    --user-msg-text: #ececec;
+    --thinking-text: #7a7a7a;
+
+    /* Borders */
+    --border:       rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.18);
+
+    /* Accent */
+    --accent:       #10a37f;
+
+    /* Typography */
+    --font-sans: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+        "Helvetica Neue", sans-serif;
 }
 
 body {
-    margin: 0;
-    color: white;
-    font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+    background-color: var(--main-bg);
+    color: var(--text);
+    font-family: var(--font-sans);
 }
 
+#app {
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+/* ── Font face ── */
 @font-face {
     font-family: "Nunito";
     font-style: normal;
     font-weight: 400;
     src: local(""),
-    url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
+        url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
 }
 
-#app {
-    height: 100vh;
-    text-align: center;
+/* ── Catppuccin Mocha ── */
+body.theme-mocha {
+    --main-bg:       #1e1e2e;
+    --sidebar-bg:    #181825;
+    --panel-bg:      #313244;
+    --input-bg:      #45475a;
+    --thinking-bg:   #11111b;
+    --hover-bg:      rgba(205, 214, 244, 0.06);
+    --active-bg:     rgba(205, 214, 244, 0.11);
+    --user-msg-bg:   #313244;
+    --text:          #cdd6f4;
+    --text-muted:    #a6adc8;
+    --text-faint:    #6c7086;
+    --user-msg-text: #cdd6f4;
+    --thinking-text: #585b70;
+    --border:        rgba(166, 173, 200, 0.1);
+    --border-strong: rgba(166, 173, 200, 0.22);
+    --accent:        #cba6f7;
+}
+
+/* ── Catppuccin Macchiato ── */
+body.theme-macchiato {
+    --main-bg:       #24273a;
+    --sidebar-bg:    #1e2030;
+    --panel-bg:      #363a4f;
+    --input-bg:      #494d64;
+    --thinking-bg:   #181926;
+    --hover-bg:      rgba(202, 211, 245, 0.06);
+    --active-bg:     rgba(202, 211, 245, 0.11);
+    --user-msg-bg:   #363a4f;
+    --text:          #cad3f5;
+    --text-muted:    #a5adcb;
+    --text-faint:    #6e738d;
+    --user-msg-text: #cad3f5;
+    --thinking-text: #5b6078;
+    --border:        rgba(165, 173, 203, 0.1);
+    --border-strong: rgba(165, 173, 203, 0.22);
+    --accent:        #c6a0f6;
+}
+
+/* ── Catppuccin Frappé ── */
+body.theme-frappe {
+    --main-bg:       #303446;
+    --sidebar-bg:    #292c3c;
+    --panel-bg:      #414559;
+    --input-bg:      #51576d;
+    --thinking-bg:   #232634;
+    --hover-bg:      rgba(198, 208, 245, 0.06);
+    --active-bg:     rgba(198, 208, 245, 0.11);
+    --user-msg-bg:   #414559;
+    --text:          #c6d0f5;
+    --text-muted:    #a5adce;
+    --text-faint:    #737994;
+    --user-msg-text: #c6d0f5;
+    --thinking-text: #626880;
+    --border:        rgba(165, 173, 206, 0.1);
+    --border-strong: rgba(165, 173, 206, 0.22);
+    --accent:        #ca9ee6;
+}
+
+/* ── Catppuccin Latte (light) ── */
+body.theme-latte {
+    --main-bg:       #eff1f5;
+    --sidebar-bg:    #e6e9ef;
+    --panel-bg:      #ccd0da;
+    --input-bg:      #dce0e8;
+    --thinking-bg:   #e6e9ef;
+    --hover-bg:      rgba(76, 79, 105, 0.07);
+    --active-bg:     rgba(76, 79, 105, 0.13);
+    --user-msg-bg:   #ccd0da;
+    --text:          #4c4f69;
+    --text-muted:    #6c6f85;
+    --text-faint:    #9ca0b0;
+    --user-msg-text: #4c4f69;
+    --thinking-text: #9ca0b0;
+    --border:        rgba(76, 79, 105, 0.12);
+    --border-strong: rgba(76, 79, 105, 0.26);
+    --accent:        #8839ef;
+}
+
+body.theme-latte ::-webkit-scrollbar-thumb {
+    background: rgba(76, 79, 105, 0.18);
+}
+body.theme-latte ::-webkit-scrollbar-thumb:hover {
+    background: rgba(76, 79, 105, 0.3);
+}
+
+/* ── Global scrollbar ── */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
 }
