@@ -5,12 +5,20 @@ import httpx
 
 from schemas import ChatAgentInvokeRequest
 from agents import ChatAgent
+from auth import validate_ollama_url
 import consts
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.chat_agent = ChatAgent(consts.MODEL, keep_alive=-1)
+    if not consts.OLLAMA_BASE_URL:
+        raise RuntimeError("OLLAMA_BASE_URL is not set")
+
+    await validate_ollama_url(consts.OLLAMA_BASE_URL)
+
+    app.state.chat_agent = ChatAgent(
+        consts.CHAT_MODEL, base_url=consts.OLLAMA_BASE_URL, keep_alive=-1
+    )
     yield
     async with httpx.AsyncClient() as client:
         await client.post(

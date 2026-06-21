@@ -2,5 +2,5 @@ from dotenv import load_dotenv
 from os import getenv
 
 load_dotenv()
-MODEL = getenv("CHAT_MODEL")
-ENDPOINT = getenv("CHAT_ENDPOINT")
+CHAT_MODEL = getenv("CHAT_MODEL")
+OLLAMA_BASE_URL = getenv("CHAT_ENDPOINT")
