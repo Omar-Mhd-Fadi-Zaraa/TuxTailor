@@ -7,8 +7,6 @@
 
 [![License: MIT](https://img.shields.io/github/license/Omar-Mhd-Fadi-Zaraa/TuxTailor)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/Omar-Mhd-Fadi-Zaraa/TuxTailor?style=social)](https://github.com/Omar-Mhd-Fadi-Zaraa/TuxTailor/stargazer)
-[![GitHub issues](https://img.shields.io/github/issues/Omar-Mhd-Fadi-Zaraa/TuxTailor)](https://github.com/Omar-Mhd-Fadi-Zaraa/TuxTailor/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/Omar-Mhd-Fadi-Zaraa/TuxTailor)](https://github.com/Omar-Mhd-Fadi-Zaraa/TuxTailor/pulls)
 [![Go](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Svelte](https://img.shields.io/badge/Svelte-3-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev/)
