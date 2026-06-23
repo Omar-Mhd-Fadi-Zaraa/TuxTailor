@@ -1,3 +1,5 @@
 .cursor/
 .vscode/
 .github/
+**/TuxTailor.db
+**/__pycache__/
