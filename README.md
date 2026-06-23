@@ -1,6 +1,7 @@
 <div align="center">
 
-<img src="Application/TuxUI/build/appicon.png" alt="TuxTailor logo" width="128">
+<img src="Application/TuxUI/build/appicon-light.png#gh-light-mode-only" alt="TuxTailor logo" width="128">
+<img src="Application/TuxUI/build/appicon-dark.png#gh-dark-mode-only" alt="TuxTailor logo" width="128">
 
 # TuxTailor
 
