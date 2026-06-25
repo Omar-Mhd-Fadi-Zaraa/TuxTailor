@@ -3,3 +3,4 @@
 .github/
 **/TuxTailor.db
 **/__pycache__/
+**/test
