@@ -4,3 +4,5 @@
 **/TuxTailor.db
 **/__pycache__/
 **/test
+**/models.py
+**/seed_dummy_data.py
