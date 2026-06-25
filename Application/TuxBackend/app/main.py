@@ -1,14 +1,11 @@
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 
-from routes.routes import base, agent, lifespan
-from db.db import Database
-
-db = Database()
+from routes.routes import base, chat, lifespan
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(base)
-app.include_router(agent)
+app.include_router(chat)
 
 
 @app.get("/scalar", include_in_schema=False)
