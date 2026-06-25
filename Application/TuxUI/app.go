@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -37,6 +41,93 @@ type message struct {
 	Query string `json:"query"`
 }
 
+type chatAgentRequest struct {
+	ChatID      int    `json:"chatId"`
+	UserMessage string `json:"userMessage"`
+	DateSent    string `json:"dateSent"`
+	UserID      *int   `json:"userId,omitempty"`
+}
+
+type agentStreamEvent struct {
+	Type       string          `json:"type"`
+	Content    string          `json:"content,omitempty"`
+	ToolName   string          `json:"toolName,omitempty"`
+	ToolInput  json.RawMessage `json:"toolInput,omitempty"`
+	ToolOutput json.RawMessage `json:"toolOutput,omitempty"`
+}
+
+const defaultBackendURL = "http://localhost:8000"
+
+func resolveBackendURL(url string) string {
+	url = strings.TrimSpace(url)
+	if url == "" {
+		return defaultBackendURL
+	}
+	return strings.TrimRight(url, "/")
+}
+
+func parseBackendChatID(chatID string) int {
+	id, err := strconv.Atoi(chatID)
+	if err != nil || id < 1 {
+		return 1
+	}
+	return id
+}
+
+func defaultUserID() *int {
+	id := 1
+	return &id
+}
+
+func emitError(ctx context.Context, chatID, msgID, message string) {
+	runtime.EventsEmit(ctx, "chat:error", streamErrorEvent{
+		ChatID: chatID, MsgID: msgID, Message: message,
+	})
+}
+
+func formatToolPayload(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var pretty any
+	if err := json.Unmarshal(raw, &pretty); err != nil {
+		return string(raw)
+	}
+	encoded, err := json.Marshal(pretty)
+	if err != nil {
+		return string(raw)
+	}
+	return string(encoded)
+}
+
+func handleAgentStreamEvent(ctx context.Context, chatID, msgID string, event agentStreamEvent) {
+	switch event.Type {
+	case "text":
+		if event.Content == "" {
+			return
+		}
+		runtime.EventsEmit(ctx, "chat:chunk", streamChunkEvent{
+			ChatID: chatID, MsgID: msgID, Type: "text", Content: event.Content,
+		})
+	case "tool_start":
+		content := fmt.Sprintf("Using tool: %s", event.ToolName)
+		if payload := formatToolPayload(event.ToolInput); payload != "" {
+			content += "\n" + payload
+		}
+		runtime.EventsEmit(ctx, "chat:chunk", streamChunkEvent{
+			ChatID: chatID, MsgID: msgID, Type: "thinking", Content: content + "\n",
+		})
+	case "tool_end":
+		content := fmt.Sprintf("Tool finished: %s", event.ToolName)
+		if payload := formatToolPayload(event.ToolOutput); payload != "" {
+			content += "\n" + payload
+		}
+		runtime.EventsEmit(ctx, "chat:chunk", streamChunkEvent{
+			ChatID: chatID, MsgID: msgID, Type: "thinking", Content: content + "\n",
+		})
+	}
+}
+
 // SendMessage sends a user message to TuxBackend and returns the assistant reply.
 // Kept for backwards compatibility; prefer StreamMessage for new UI.
 func (a *App) SendMessage(userMessage string) (string, error) {
@@ -45,7 +136,7 @@ func (a *App) SendMessage(userMessage string) (string, error) {
 		return "", err
 	}
 
-	resp, err := http.Post("http://localhost:8080/chat/message", "application/json", bytes.NewReader(payload))
+	resp, err := http.Post(defaultBackendURL+"/chat/message", "application/json", bytes.NewReader(payload))
 	if err != nil {
 		return "", err
 	}
@@ -111,54 +202,60 @@ type streamConfirmEvent struct {
 // StreamMessage sends a user message to TuxBackend and streams the response
 // back to the frontend via Wails events.
 // Events emitted:  chat:chunk | chat:media | chat:confirmation | chat:done | chat:error
-func (a *App) StreamMessage(chatID string, msgID string, userMessage string) {
+func (a *App) StreamMessage(chatID string, msgID string, userMessage string, backendURL string) {
 	go func() {
-		payload, err := json.Marshal([]message{{Role: "user", Query: userMessage}})
+		baseURL := resolveBackendURL(backendURL)
+		reqBody := chatAgentRequest{
+			ChatID:      parseBackendChatID(chatID),
+			UserMessage: userMessage,
+			DateSent:    time.Now().UTC().Format(time.RFC3339),
+			UserID:      defaultUserID(),
+		}
+
+		payload, err := json.Marshal(reqBody)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "chat:error", streamErrorEvent{
-				ChatID: chatID, MsgID: msgID, Message: err.Error(),
-			})
+			emitError(a.ctx, chatID, msgID, err.Error())
 			return
 		}
 
-		resp, err := http.Post("http://localhost:8080/chat/message", "application/json", bytes.NewReader(payload))
+		resp, err := http.Post(baseURL+"/chat/invoke", "application/json", bytes.NewReader(payload))
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "chat:error", streamErrorEvent{
-				ChatID: chatID, MsgID: msgID, Message: err.Error(),
-			})
+			emitError(a.ctx, chatID, msgID, err.Error())
 			return
 		}
 		defer resp.Body.Close()
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "chat:error", streamErrorEvent{
-				ChatID: chatID, MsgID: msgID, Message: err.Error(),
-			})
-			return
-		}
-
-		var messages []message
-		if err := json.Unmarshal(body, &messages); err != nil {
-			runtime.EventsEmit(a.ctx, "chat:error", streamErrorEvent{
-				ChatID: chatID, MsgID: msgID, Message: err.Error(),
-			})
-			return
-		}
-
-		// Find the last non-user message and emit it as a text chunk.
-		// When the Python agent gains true streaming, each token can be
-		// emitted individually here instead.
-		for i := len(messages) - 1; i >= 0; i-- {
-			if messages[i].Role != "user" {
-				runtime.EventsEmit(a.ctx, "chat:chunk", streamChunkEvent{
-					ChatID:  chatID,
-					MsgID:   msgID,
-					Type:    "text",
-					Content: messages[i].Query,
-				})
-				break
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			message := fmt.Sprintf("backend returned %d", resp.StatusCode)
+			if len(body) > 0 {
+				message = string(body)
 			}
+			emitError(a.ctx, chatID, msgID, message)
+			return
+		}
+
+		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" {
+				continue
+			}
+
+			var event agentStreamEvent
+			if err := json.Unmarshal([]byte(line), &event); err != nil {
+				emitError(a.ctx, chatID, msgID, fmt.Sprintf("invalid stream event: %v", err))
+				return
+			}
+
+			handleAgentStreamEvent(a.ctx, chatID, msgID, event)
+		}
+
+		if err := scanner.Err(); err != nil {
+			emitError(a.ctx, chatID, msgID, err.Error())
+			return
 		}
 
 		runtime.EventsEmit(a.ctx, "chat:done", streamDoneEvent{

@@ -3,6 +3,7 @@
   import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime.js";
   import { StreamMessage } from "../../wailsjs/go/main/App.js";
   import { chats, activeChatId, activeChat, ensureActiveChat } from "../stores/chats.js";
+  import { settings } from "../stores/settings.js";
   import MessageItem from "./MessageItem.svelte";
 
   let input = "";
@@ -35,7 +36,7 @@
 
     await scrollToBottom();
 
-    StreamMessage(chatId, msgId, query);
+    StreamMessage(chatId, msgId, query, $settings.backendUrl);
   }
 
   function handleKeydown(e) {

@@ -5,6 +5,7 @@ const STORAGE_KEY = "tuxtailor_settings";
 const DEFAULTS = {
   theme: "mocha",         // mocha | macchiato | frappe | latte | default
   lastDarkTheme: "mocha", // remembers which dark theme was active before switching to latte
+  backendUrl: "http://localhost:8000",
   profile: {
     expertise: "intermediate", // beginner | intermediate | advanced
     distro: "",
@@ -58,7 +59,11 @@ function createSettingsStore() {
     update((s) => persist({ ...s, profile: { ...s.profile, ...patch } }));
   }
 
-  return { subscribe, set, setTheme, toggleDarkMode, setProfile };
+  function setBackendUrl(backendUrl) {
+    update((s) => persist({ ...s, backendUrl }));
+  }
+
+  return { subscribe, set, setTheme, toggleDarkMode, setProfile, setBackendUrl };
 }
 
 export const settings = createSettingsStore();

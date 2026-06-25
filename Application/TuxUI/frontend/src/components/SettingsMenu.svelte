@@ -8,7 +8,7 @@
   // Local copies of settings — written back on "Done"
   let localTheme      = $settings.theme;
   let localDark       = $isDarkMode;
-  let localBackendUrl = "http://localhost:8080";
+  let localBackendUrl = $settings.backendUrl;
   let localModel      = "default";
   let localExpertise  = $settings.profile.expertise;
   let localDistro     = $settings.profile.distro;
@@ -67,6 +67,7 @@
   }
 
   function save() {
+    settings.setBackendUrl(localBackendUrl);
     settings.setProfile({
       expertise:    localExpertise,
       distro:       localDistro,
@@ -151,7 +152,7 @@
           <h3>Backend</h3>
           <label class="field">
             <span>URL</span>
-            <input type="text" bind:value={localBackendUrl} placeholder="http://localhost:8080" />
+            <input type="text" bind:value={localBackendUrl} placeholder="http://localhost:8000" />
           </label>
         </section>
 

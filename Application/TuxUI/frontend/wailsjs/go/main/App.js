@@ -14,6 +14,6 @@ export function SendMessage(arg1) {
   return window['go']['main']['App']['SendMessage'](arg1);
 }
 
-export function StreamMessage(arg1, arg2, arg3) {
-  return window['go']['main']['App']['StreamMessage'](arg1, arg2, arg3);
+export function StreamMessage(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['StreamMessage'](arg1, arg2, arg3, arg4);
 }

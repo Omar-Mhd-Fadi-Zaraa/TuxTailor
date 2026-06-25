@@ -7,4 +7,4 @@ export function SendConfirmation(arg1:string,arg2:string,arg3:string):Promise<vo
 
 export function SendMessage(arg1:string):Promise<string>;
 
-export function StreamMessage(arg1:string,arg2:string,arg3:string):Promise<void>;
+export function StreamMessage(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;

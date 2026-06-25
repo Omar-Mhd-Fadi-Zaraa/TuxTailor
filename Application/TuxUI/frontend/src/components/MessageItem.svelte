@@ -1,6 +1,7 @@
 <script>
   import { chats } from "../stores/chats.js";
   import { SendConfirmation } from "../../wailsjs/go/main/App.js";
+  import Markdown from "./Markdown.svelte";
 
   export let message;
   export let chatId;
@@ -31,7 +32,13 @@
   <div class="message-body">
     {#each message.parts as part, i}
       {#if part.type === "text"}
-        <div class="text-part">{part.content}</div>
+        {#if message.role === "assistant"}
+          <div class="text-part markdown-part">
+            <Markdown source={part.content} />
+          </div>
+        {:else}
+          <div class="text-part">{part.content}</div>
+        {/if}
 
       {:else if part.type === "thinking"}
         <div class="thinking-block" class:collapsed={part.collapsed}>
@@ -149,6 +156,11 @@
     line-height: 1.65;
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  .markdown-part {
+    white-space: normal;
+    width: 100%;
   }
 
   .message.user .text-part {
