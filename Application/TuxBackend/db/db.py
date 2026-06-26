@@ -59,6 +59,8 @@ class Database:
         query = """
         CREATE TABLE IF NOT EXISTS users (
         userId INTEGER PRIMARY KEY AUTOINCREMENT,
+        userName TEXT NOT NULL,
+        password TEXT NOT NULL,
         level TEXT NOT NULL,
         systemPrompt TEXT,
         distroOfChoice TEXT,
@@ -89,23 +91,30 @@ class Database:
 
     async def AddUser(
         self,
+        user_name: str,
+        password: str,
         level: str,
         dateCreated: str,
         systemPrompt: str | None = None,
         distroOfChoice: str | None = None,
-    ) -> sqlite3.OperationalError | None:
+    ) -> sqlite3.OperationalError | int:
         query = """
-        INSERT INTO users(level,systemPrompt,distroOfChoice,dateCreated) VALUES (?,?,?,?)
+        INSERT INTO users(userName, password,level,systemPrompt,distroOfChoice,dateCreated) VALUES (?,?,?,?,?,?)
         """
         try:
-            self.cur.execute(query, (level, systemPrompt, distroOfChoice, dateCreated))
+            self.cur.execute(
+                query,
+                (user_name, password, level, systemPrompt, distroOfChoice, dateCreated),
+            )
             self.conn.commit()
         except sqlite3.Error as e:
             raise sqlite3.OperationalError(f"Unable to add user: {e}")
 
+        return self.cur.lastrowid
+
     async def AddChat(
         self, userId: int, title: str, dateCreated: str
-    ) -> sqlite3.OperationalError | None:
+    ) -> sqlite3.OperationalError | int:
         query = """
         INSERT INTO chats(userId,title,messageCount,dateCreated) VALUES (?,?,?,?)
         """
@@ -114,6 +123,8 @@ class Database:
             self.conn.commit()
         except sqlite3.Error as e:
             raise sqlite3.OperationalError(f"Unable to add chat: {e}")
+
+        return self.cur.lastrowid
 
     async def AddMessage(
         self,
@@ -134,21 +145,25 @@ class Database:
         try:
             self.cur.execute(
                 query,
-                (chatId,
-                userId,
-                content,
-                role,
-                toolCall,
-                toolCalls,
-                toolCallStatus,
-                preceedingMessage,
-                dateSent,)
+                (
+                    chatId,
+                    userId,
+                    content,
+                    role,
+                    toolCall,
+                    toolCalls,
+                    toolCallStatus,
+                    preceedingMessage,
+                    dateSent,
+                ),
             )
             self.conn.commit()
         except sqlite3.Error as e:
             raise sqlite3.OperationalError(f"Unable to add message: {e}")
 
-    async def GetChatMessages(self, chatId: int) -> list[Any]:
+    async def GetChatMessages(
+        self, chatId: int
+    ) -> sqlite3.OperationalError | list[Any]:
         query = """
         SELECT * FROM messages WHERE chatId = ?
         """
@@ -161,7 +176,7 @@ class Database:
             )
         return messages
 
-    async def GetUserSysPrompt(self, userId: int) -> str:
+    async def GetUserSysPrompt(self, userId: int) -> list[Any]:
         query = """
         SELECT systemPrompt FROM users WHERE userId = ?
         """
@@ -172,4 +187,77 @@ class Database:
             raise sqlite3.OperationalError(
                 f"Unable to find system prompt for user {userId}: {e}"
             )
-        return str(prompt)
+        return prompt
+
+    async def GetUser(
+        self, user_name: str
+    ) -> sqlite3.OperationalError | list[Any]:
+        query = """
+        SELECT userId, password FROM users WHERE userName = ?
+        """
+        try:
+            self.cur.execute(query, (user_name,))
+            row = self.cur.fetchone()
+        except sqlite3.Error as e:
+            raise sqlite3.OperationalError(f"Unable to find user: {e}")
+
+        return row 
+
+    async def UpdateUser(
+        self,
+        user_id: int,
+        level: str | None = None,
+        system_prompt: str | None = None,
+        distro_of_choice: str | None = None,
+    ) -> sqlite3.OperationalError | None:
+        query = """
+        UPDATE users
+        SET level = COALESCE(?,level),
+            systemPrompt = COALESCE(?, systemPrompt),
+            distroOfChoice = COALESCE(?, distroOfChoice)
+        WHERE userId = ?
+        """
+        try:
+            self.cur.execute(query, (level, system_prompt, distro_of_choice, user_id))
+            self.conn.commit()
+        except sqlite3.Error as e:
+            raise sqlite3.OperationalError(f"Couldn't update user info : {e}")
+        
+    async def UpdateChat(
+        self,
+        chat_id: int,
+        title: str | None = None,
+        system_prompt: str | None = None,
+    ) -> sqlite3.OperationalError | None:
+        query_title = """
+        UPDATE chats
+        SET title = COALESCE(?, title)
+        WHERE chatId = ?
+        """
+        query_sysprompt = """
+        UPDATE messages
+        SET content = COALESCE(?, content)
+        WHERE chatId = ? AND role = 'system'
+        """
+        query_insert_sysprompt = """
+        INSERT INTO messages (chatId, userId, content, role, dateSent)
+        VALUES (
+            ?,
+            (SELECT userId FROM chats WHERE chatId = ?),
+            ?,
+            'system',
+            datetime('now')
+        )
+        """
+        try:
+            if title is not None:
+                self.cur.execute(query_title, (title, chat_id))
+            if system_prompt is not None:
+                self.cur.execute(query_sysprompt, (system_prompt, chat_id))
+                if self.cur.rowcount == 0:
+                    self.cur.execute(
+                        query_insert_sysprompt, (chat_id, chat_id, system_prompt)
+                    )
+            self.conn.commit()
+        except sqlite3.Error as e:
+            raise sqlite3.OperationalError(f"Could not update chat information: {e}")
