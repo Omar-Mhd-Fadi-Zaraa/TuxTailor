@@ -119,7 +119,7 @@ class Database:
         INSERT INTO chats(userId,title,messageCount,dateCreated) VALUES (?,?,?,?)
         """
         try:
-            self.cur.execute(query, (userId, title, 1, dateCreated))
+            self.cur.execute(query, (userId, title, 0, dateCreated))
             self.conn.commit()
         except sqlite3.Error as e:
             raise sqlite3.OperationalError(f"Unable to add chat: {e}")
