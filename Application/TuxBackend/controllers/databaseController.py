@@ -1,4 +1,5 @@
 from fastapi.requests import Request
+import json
 
 from db.db import Database
 from models.messages import (
@@ -34,14 +35,15 @@ async def AddAiMessage(
     aiMessage: AssistantMessage, database: Database
 ) -> RuntimeError | None:
     try:
+        tool_calls = aiMessage.lcmsg.tool_calls
         await database.AddMessage(
             aiMessage.chat_id,
             aiMessage.user_id,
             aiMessage.lcmsg.content,
             aiMessage.role,
             aiMessage.date_sent,
-            toolCall=True if aiMessage.lcmsg.tool_calls else False,
-            toolCalls=aiMessage.lcmsg.tool_calls,
+            toolCall=True if tool_calls else False,
+            toolCalls=json.dumps(tool_calls) if tool_calls else None,
         )
     except Exception as e:
         raise RuntimeError(f"Couldn't add ai message: {e}")
