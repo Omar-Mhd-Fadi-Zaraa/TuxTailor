@@ -75,7 +75,7 @@ async def invoke_agent(
     req: ChatAgentRequest,
     chat_agent: ChatAgent = Depends(get_chat_agent),
     db: Database = Depends(get_db),
-) -> HTTPException | StreamingResponse:
+):
     try:
         msg = UserMessage(req, req.user_message)
         async with asyncio.TaskGroup() as tg:
@@ -120,9 +120,7 @@ async def invoke_agent(
 
 
 @chat.post("")
-async def add_chat(
-    req: ChatAddRequest, db=Depends(get_db)
-) -> HTTPException | JSONResponse:
+async def add_chat(req: ChatAddRequest, db=Depends(get_db)):
     try:
         new_chat_id = await AddChat(req, db)
     except Exception as e:
@@ -137,7 +135,7 @@ async def add_chat(
 @chat.patch("/{chat_id}")
 async def update_chat_info(
     chat_id: int, chat_info: ChatUpdateRequest, db=Depends(get_db)
-) -> HTTPException | JSONResponse:
+):
     try:
         data = chat_info.model_dump(exclude_unset=True, by_alias=False)
         await UpdateChatInfo(chat_id, db, **data)
@@ -153,10 +151,8 @@ async def update_chat_info(
     )
 
 
-@user.post("")
-async def add_user(
-    user: UserAddRequest, db=Depends(get_db)
-) -> HTTPException | JSONResponse:
+@user.post("/signup")
+async def add_user(user: UserAddRequest, db=Depends(get_db)):
     try:
         new_user_id = await AddUser(user, db)
     except Exception as e:
@@ -168,10 +164,8 @@ async def add_user(
     return JSONResponse(content={"userId": new_user_id}, status_code=status.HTTP_200_OK)
 
 
-@user.get("")
-async def log_in(
-    user_info: UserLoginRequest, db=Depends(get_db)
-) -> HTTPException | JSONResponse:
+@user.post("/login")
+async def log_in(user_info: UserLoginRequest, db=Depends(get_db)):
     try:
         user_id, logged = await Login(user_info.user_name, user_info.password, db)
     except Exception as e:
@@ -196,7 +190,7 @@ async def log_in(
 @user.patch("/{user_id}")
 async def update_user_info(
     user_id: int, user_info: UserUpdateRequest, db=Depends(get_db)
-) -> HTTPException | JSONResponse:
+):
     try:
         data = user_info.model_dump(by_alias=False, exclude_unset=True)
         await UpdateUser(user_id, db, **data)
