@@ -1,9 +1,11 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
+  import { get } from "svelte/store";
   import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime.js";
-  import { StreamMessage } from "../../wailsjs/go/main/App.js";
+  import { StreamMessage, CreateChat, UpdateChat } from "../../wailsjs/go/main/App.js";
   import { chats, activeChatId, activeChat, ensureActiveChat } from "../stores/chats.js";
   import { settings } from "../stores/settings.js";
+  import { auth } from "../stores/auth.js";
   import MessageItem from "./MessageItem.svelte";
 
   let input = "";
@@ -25,18 +27,54 @@
     const query = input.trim();
     if (!query || loading) return;
 
-    const chatId = ensureActiveChat();
+    let chatId = ensureActiveChat();
+    if (!chatId || !$auth.userId) {
+      return;
+    }
+
+    const chat = get(chats).find((c) => c.id === chatId);
+    if (!chat) return;
+
+    const title =
+      chat.title === "New Chat"
+        ? query.slice(0, 40) || "New Chat"
+        : chat.title.trim() || "New Chat";
+
     input = "";
     loading = true;
 
-    chats.addUserMessage(chatId, query);
-    const msgId = chats.startAssistantMessage(chatId);
-    pendingMsgId = msgId;
-    pendingChatId = chatId;
+    try {
+      if (chat.backendId === null) {
+        const backendId = await CreateChat(
+          $auth.userId,
+          title,
+          $settings.backendUrl
+        );
+        chatId = chats.promoteChat(chatId, backendId, title, chat.systemPrompt);
+        activeChatId.set(chatId);
 
-    await scrollToBottom();
+        if (chat.systemPrompt?.trim()) {
+          await UpdateChat(
+            backendId,
+            title,
+            chat.systemPrompt.trim(),
+            $settings.backendUrl
+          );
+        }
+      }
 
-    StreamMessage(chatId, msgId, query, $settings.backendUrl);
+      chats.addUserMessage(chatId, query);
+      const msgId = chats.startAssistantMessage(chatId);
+      pendingMsgId = msgId;
+      pendingChatId = chatId;
+
+      await scrollToBottom();
+
+      StreamMessage(chatId, msgId, query, $settings.backendUrl, $auth.userId);
+    } catch (e) {
+      loading = false;
+      console.error("Failed to send message:", e);
+    }
   }
 
   function handleKeydown(e) {

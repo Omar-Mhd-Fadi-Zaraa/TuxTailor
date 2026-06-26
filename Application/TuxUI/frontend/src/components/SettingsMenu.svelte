@@ -1,7 +1,10 @@
 <script>
   import { settings, isDarkMode } from "../stores/settings.js";
+  import { auth } from "../stores/auth.js";
+  import { UpdateUser } from "../../wailsjs/go/main/App.js";
 
   export let onClose;
+  export let onLogout;
 
   let activeTab = "appearance"; // appearance | model | profile
 
@@ -13,6 +16,9 @@
   let localExpertise  = $settings.profile.expertise;
   let localDistro     = $settings.profile.distro;
   let localPrompt     = $settings.profile.systemPrompt;
+  let profileError    = "";
+  let profileSaving   = false;
+  let profileSaved    = false;
 
   const THEMES = [
     {
@@ -66,14 +72,47 @@
     localTheme = $settings.theme;
   }
 
+  async function saveProfile() {
+    if (!$auth.userId || profileSaving) return;
+
+    profileError = "";
+    profileSaved = false;
+    profileSaving = true;
+
+    try {
+      await UpdateUser(
+        $auth.userId,
+        localExpertise,
+        localPrompt,
+        localDistro,
+        $settings.backendUrl
+      );
+      settings.setProfile({
+        expertise: localExpertise,
+        distro: localDistro,
+        systemPrompt: localPrompt,
+      });
+      profileSaved = true;
+    } catch (e) {
+      profileError = e?.message || String(e);
+    } finally {
+      profileSaving = false;
+    }
+  }
+
   function save() {
     settings.setBackendUrl(localBackendUrl);
     settings.setProfile({
-      expertise:    localExpertise,
-      distro:       localDistro,
+      expertise: localExpertise,
+      distro: localDistro,
       systemPrompt: localPrompt,
     });
     onClose();
+  }
+
+  function handleLogout() {
+    onClose();
+    onLogout();
   }
 </script>
 
@@ -209,11 +248,25 @@
             ></textarea>
           </label>
         </section>
+
+        {#if profileError}
+          <p class="profile-error">{profileError}</p>
+        {/if}
+        {#if profileSaved}
+          <p class="profile-success">Profile saved to server.</p>
+        {/if}
+
+        <div class="profile-actions">
+          <button class="save-btn" on:click={saveProfile} disabled={profileSaving}>
+            {profileSaving ? "Saving…" : "Save"}
+          </button>
+        </div>
       {/if}
     </div>
 
     <!-- Footer -->
     <div class="settings-footer">
+      <button class="logout-btn" on:click={handleLogout}>Log out</button>
       <button class="save-btn" on:click={save}>Done</button>
     </div>
 
@@ -504,13 +557,50 @@
     line-height: 1.5;
   }
 
+  .profile-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .profile-error {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #f87171;
+  }
+
+  .profile-success {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+
   /* ── Footer ── */
   .settings-footer {
     padding: 0.75rem 1.25rem;
     border-top: 1px solid var(--border);
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     flex-shrink: 0;
+  }
+
+  .logout-btn {
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.87rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+  }
+
+  .logout-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text);
+    border-color: var(--border-strong);
   }
 
   .save-btn {

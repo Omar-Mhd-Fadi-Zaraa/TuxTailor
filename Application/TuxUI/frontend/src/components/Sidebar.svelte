@@ -1,11 +1,16 @@
 <script>
+  import { onMount, onDestroy } from "svelte";
   import { chats, activeChatId } from "../stores/chats.js";
+  import { auth } from "../stores/auth.js";
+  import ChatEditModal from "./ChatEditModal.svelte";
 
   export let onOpenSettings;
+  export let onLogout;
+
+  let editingChatId = null;
 
   function handleNewChat() {
-    const id = $chats.length > 0 ? null : null;
-    const newId = chats.newChat();
+    const newId = chats.newLocalChat();
     activeChatId.set(newId);
   }
 
@@ -16,7 +21,32 @@
       const remaining = $chats.filter((c) => c.id !== chatId);
       activeChatId.set(remaining.length > 0 ? remaining[remaining.length - 1].id : null);
     }
+    if (editingChatId === chatId) {
+      editingChatId = null;
+    }
   }
+
+  function openEditChat(e, chatId) {
+    e.stopPropagation();
+    activeChatId.set(chatId);
+    editingChatId = chatId;
+  }
+
+  function handleKeydown(e) {
+    if (editingChatId) return;
+    if (e.key === "F2" && $activeChatId) {
+      e.preventDefault();
+      editingChatId = $activeChatId;
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener("keydown", handleKeydown);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener("keydown", handleKeydown);
+  });
 </script>
 
 <aside class="sidebar">
@@ -28,6 +58,17 @@
       </svg>
     </button>
     <span class="app-name">TuxTailor</span>
+    <button class="icon-btn logout-btn" title="Log out" on:click={onLogout}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="user-line" title={$auth.userName}>
+    {$auth.userName}
   </div>
 
   <div class="chat-list">
@@ -41,6 +82,17 @@
         on:click={() => activeChatId.set(chat.id)}
       >
         <span class="chat-item-title">{chat.title}</span>
+        <button
+          class="menu-btn"
+          title="Edit chat (F2)"
+          on:click={(e) => openEditChat(e, chat.id)}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="19" cy="12" r="2"/>
+          </svg>
+        </button>
         <button
           class="delete-btn"
           title="Delete"
@@ -64,6 +116,10 @@
   </div>
 </aside>
 
+{#if editingChatId}
+  <ChatEditModal chatId={editingChatId} on:close={() => (editingChatId = null)} />
+{/if}
+
 <style>
   .sidebar {
     width: 240px;
@@ -84,11 +140,22 @@
   }
 
   .app-name {
+    flex: 1;
     font-size: 0.88rem;
     font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0.04em;
     text-transform: uppercase;
+  }
+
+  .user-line {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.78rem;
+    color: var(--text-faint);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .icon-btn {
@@ -142,7 +209,7 @@
     font-family: inherit;
     font-size: 0.83rem;
     transition: background 0.1s, color 0.1s;
-    gap: 0.4rem;
+    gap: 0.35rem;
   }
 
   .chat-item:hover {
@@ -162,6 +229,7 @@
     white-space: nowrap;
   }
 
+  .menu-btn,
   .delete-btn {
     flex-shrink: 0;
     display: flex;
@@ -179,10 +247,12 @@
     padding: 0;
   }
 
+  .chat-item:hover .menu-btn,
   .chat-item:hover .delete-btn {
     opacity: 1;
   }
 
+  .menu-btn:hover,
   .delete-btn:hover {
     background: var(--hover-bg);
     color: var(--text);
@@ -209,9 +279,14 @@
     transition: background 0.12s, color 0.12s, border-color 0.12s;
   }
 
-  .new-chat-btn:hover {
+  .new-chat-btn:hover:not(:disabled) {
     background: var(--hover-bg);
     color: var(--text);
     border-color: var(--border-strong);
+  }
+
+  .new-chat-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 </style>

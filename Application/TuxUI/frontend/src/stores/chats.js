@@ -1,36 +1,92 @@
 import { writable, derived, get } from "svelte/store";
 
-let _nextId = 1;
-const uid = () => String(_nextId++);
+let _nextMsgId = 1;
+let _nextLocalId = 1;
+const uid = () => String(_nextMsgId++);
+const localId = () => `local-${_nextLocalId++}`;
 
 /**
- * Part shapes:
- *   { type: "text",         content: string }
- *   { type: "thinking",     content: string, collapsed: boolean }
- *   { type: "media",        mediaType: "audio"|"video"|"image", url: string, alt?: string }
- *   { type: "confirmation", prompt: string, options: string[], resolved: string|null }
- *
- * Message shape:
- *   { id, role: "user"|"assistant", parts: Part[], streaming: boolean }
- *
  * Chat shape:
- *   { id, title: string, messages: Message[], createdAt: number }
+ *   { id, backendId, title, systemPrompt, messages, createdAt }
+ *   backendId is null until the first message is sent
  */
 
 function createChatsStore() {
   const { subscribe, update, set } = writable([]);
 
-  function newChat() {
-    const id = uid();
+  function newLocalChat() {
+    const id = localId();
     update((chats) => [
       ...chats,
-      { id, title: "New Chat", messages: [], createdAt: Date.now() },
+      {
+        id,
+        backendId: null,
+        title: "New Chat",
+        systemPrompt: "",
+        messages: [],
+        createdAt: Date.now(),
+      },
     ]);
     return id;
   }
 
+  function registerChat(backendChatId, title, systemPrompt = "") {
+    const id = String(backendChatId);
+    update((chats) => {
+      if (chats.some((c) => c.id === id)) {
+        return chats.map((c) =>
+          c.id === id ? { ...c, title, systemPrompt, backendId: backendChatId } : c
+        );
+      }
+      return [
+        ...chats,
+        {
+          id,
+          backendId: backendChatId,
+          title: title || "New Chat",
+          systemPrompt: systemPrompt || "",
+          messages: [],
+          createdAt: Date.now(),
+        },
+      ];
+    });
+    return id;
+  }
+
+  function promoteChat(localChatId, backendChatId, title, systemPrompt) {
+    const newId = String(backendChatId);
+    let promoted = false;
+    update((chats) =>
+      chats.map((c) => {
+        if (c.id !== localChatId) return c;
+        promoted = true;
+        return {
+          ...c,
+          id: newId,
+          backendId: backendChatId,
+          title,
+          systemPrompt: systemPrompt ?? c.systemPrompt,
+        };
+      })
+    );
+    return promoted ? newId : localChatId;
+  }
+
   function deleteChat(chatId) {
     update((chats) => chats.filter((c) => c.id !== chatId));
+  }
+
+  function updateChatMeta(chatId, { title, systemPrompt }) {
+    update((chats) =>
+      chats.map((c) => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          ...(title !== undefined ? { title } : {}),
+          ...(systemPrompt !== undefined ? { systemPrompt } : {}),
+        };
+      })
+    );
   }
 
   function addUserMessage(chatId, text) {
@@ -47,7 +103,6 @@ function createChatsStore() {
             streaming: false,
           },
         ];
-        // Use first user message as chat title if still default
         const title =
           c.title === "New Chat" ? text.slice(0, 40) || "New Chat" : c.title;
         return { ...c, title, messages };
@@ -83,7 +138,6 @@ function createChatsStore() {
             if (m.id !== msgId) return m;
             const parts = [...m.parts];
             const last = parts[parts.length - 1];
-            // Merge into the last part of the same type if it exists
             if (last && last.type === type && type !== "confirmation") {
               parts[parts.length - 1] = {
                 ...last,
@@ -168,7 +222,6 @@ function createChatsStore() {
           ...c,
           messages: c.messages.map((m) => {
             if (m.id !== msgId) return m;
-            // Collapse all thinking blocks once stream is done
             const parts = m.parts.map((p) =>
               p.type === "thinking" ? { ...p, collapsed: true } : p
             );
@@ -220,11 +273,18 @@ function createChatsStore() {
     );
   }
 
+  function clear() {
+    set([]);
+  }
+
   return {
     subscribe,
     set,
-    newChat,
+    newLocalChat,
+    registerChat,
+    promoteChat,
     deleteChat,
+    updateChatMeta,
     addUserMessage,
     startAssistantMessage,
     appendChunk,
@@ -234,6 +294,7 @@ function createChatsStore() {
     finishStream,
     toggleThinking,
     markError,
+    clear,
   };
 }
 
@@ -247,12 +308,16 @@ export const activeChat = derived(
     $chats.find((c) => c.id === $activeChatId) ?? null
 );
 
-// Convenience: ensure there's always at least one chat and it's active
 export function ensureActiveChat() {
   const current = get(activeChatId);
   const all = get(chats);
   if (current && all.find((c) => c.id === current)) return current;
-  const id = chats.newChat();
+  if (all.length > 0) {
+    const id = all[all.length - 1].id;
+    activeChatId.set(id);
+    return id;
+  }
+  const id = chats.newLocalChat();
   activeChatId.set(id);
   return id;
 }
