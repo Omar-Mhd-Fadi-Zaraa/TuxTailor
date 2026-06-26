@@ -105,7 +105,7 @@ async def stream_filtered_response(
     finally:
         await drain_task
 
-    final_state = await stream.output
+    final_state = await stream.output()
     result["messages"] = final_state["messages"][input_len:]
 
 
