@@ -53,7 +53,7 @@ flowchart LR
 | **Agents** | Chat reasoning and ISO build automation | [LangChain](https://www.langchain.com/) + [Ollama](https://ollama.com/) |
 | **Database** | Users, chats, and message history | SQLite |
 
-The system uses a **multi-agent** design: a front-end chat agent handles user interaction and requirement gathering, while a separate backend agent focuses on shell commands, Packer configs, and ISO assembly.
+The system uses a **multi-agent** design: a front-end chat agent handles user interaction and requirement gathering, while a separate backend agent focuses on shell commands and ISO assembly.
 
 ## Project structure
 
@@ -92,7 +92,7 @@ TuxTailor/
 ## Roadmap
 
 - [ ] Complete FastAPI ↔ agent streaming (SSE / NDJSON)
-- [ ] Implement agent tools (web search, package lookup, Packer config generation)
+- [ ] Implement agent tools (web search, package lookup, mkosi config generation)
 - [ ] VM/container provisioning for ISO builds (Docker, Packer)
 - [ ] ISO export pipeline
 - [ ] On-ISO helper agent with per-system RAG
