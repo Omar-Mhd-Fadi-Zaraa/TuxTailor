@@ -15,11 +15,9 @@ from Agents.agents import ChatAgent
 from db.db import Database
 from controllers.databaseController import (
     AddAiMessage,
-    AddSystemMessage,
     AddToolMessage,
 )
 from models.messages import (
-    AssistantBehaviorMessage,
     AssistantMessage,
     ToolResponseMessage,
 )
@@ -37,7 +35,7 @@ def to_langchain_messages(rows: list[Any]) -> list[AnyMessage]:
             case Role.USER:
                 messages.append(HumanMessage(content=row[2]))
             case Role.SYSTEM:
-                messages.append(SystemMessage(content=row[2]))
+                messages.insert(0, SystemMessage(content=row[2]))
             case Role.ASSISTANT:
                 messages.append(
                     AIMessage(
@@ -67,13 +65,16 @@ def _ai_message_content(message: AIMessage) -> str:
 
 
 def _ai_message_event(message: AIMessage) -> str:
-    return json.dumps(
-        {
-            "type": "ai_message",
-            "content": _ai_message_content(message),
-            "toolCalls": message.tool_calls or [],
-        }
-    ) + "\n"
+    return (
+        json.dumps(
+            {
+                "type": "ai_message",
+                "content": _ai_message_content(message),
+                "toolCalls": message.tool_calls or [],
+            }
+        )
+        + "\n"
+    )
 
 
 async def _drain_tool_calls(stream: Any) -> None:
@@ -130,7 +131,7 @@ async def persist_agent_messages(
                 raise RuntimeError("Tool message without preceding AI message")
             content = msg.content if isinstance(msg.content, str) else str(msg.content)
             tool = ToolResponseMessage(
-                last_ai_message,
+                _ai_message_content(last_ai_message),
                 request,
                 content,
                 status=getattr(msg, "status", None),
@@ -138,4 +139,3 @@ async def persist_agent_messages(
                 name=msg.name,
             )
             await AddToolMessage(tool, database)
-
