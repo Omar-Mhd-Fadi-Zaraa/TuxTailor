@@ -151,6 +151,10 @@ async def update_chat_info(
     )
 
 
+@user.get("/chats")
+async def get_user_chats(): ...
+
+
 @user.post("/signup")
 async def add_user(user: UserAddRequest, db=Depends(get_db)):
     try:
