@@ -35,7 +35,7 @@ class AssistantMessage(message):
 class ToolResponseMessage(message):
     def __init__(
         self,
-        preceeding_message: AIMessage,
+        preceeding_message: str,
         request: ChatAgentRequest,
         content: str,
         **kwargs
