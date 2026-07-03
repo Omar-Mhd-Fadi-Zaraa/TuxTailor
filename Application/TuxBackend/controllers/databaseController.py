@@ -60,10 +60,10 @@ async def AddToolMessage(
             toolMessage.role,
             toolMessage.date_sent,
             toolCallStatus=toolMessage.lcmsg.status,
-            preceedingMessage=toolMessage.preceeding_message.content,
+            preceedingMessage=toolMessage.preceeding_message,
         )
     except Exception as e:
-        raise RuntimeError(f"Couldnit add tool message: {e}")
+        raise RuntimeError(f"Couldn't add tool message: {e}")
 
 
 async def AddSystemMessage(
@@ -130,6 +130,24 @@ async def GetUserSysMessage(user_id: int, database: Database) -> RuntimeError | 
         raise RuntimeError(f"Couldn't fetch user system prompt: {e}")
 
     return sys_prompt
+
+async def GetUserChats(user_id: int, database: Database) -> RuntimeError | list[int]:
+    try:
+        rows = await database.GetUserChats(user_id) 
+        chat_ids = [row[0] for row in rows] if rows else None
+    except Exception as e:
+        raise RuntimeError(f"Could not get user chats for user {user_id}: {e}")
+    
+    return chat_ids
+
+async def GetChatMessages(chat_id: int, database:Database) -> RuntimeError | list[str]:
+    try:
+        messages = await database.GetChatMessages(chat_id) 
+        message_contents = [message[3] for message in messages] if messages else None
+    except Exception as e:
+        raise RuntimeError(f"Could not get chat messages for chat {chat_id}: {e}")
+    
+    return message_contents
 
 
 async def UpdateUser(
