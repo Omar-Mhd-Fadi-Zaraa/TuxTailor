@@ -22,7 +22,7 @@ class Database:
         query = """
         CREATE TABLE IF NOT EXISTS chats (
         chatId INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER FORIEGN KEY REFERENCES usersr (userId),
+        userId INTEGER FORIEGN KEY REFERENCES users (userId),
         title TEXT NOT NULL,
         messageCount INTEGER,
         dateCreated DATE NOT NULL
@@ -61,6 +61,8 @@ class Database:
         userId INTEGER PRIMARY KEY AUTOINCREMENT,
         userName TEXT NOT NULL,
         password TEXT NOT NULL,
+
+    return user_id, found
         level TEXT NOT NULL,
         systemPrompt TEXT,
         distroOfChoice TEXT,
@@ -165,7 +167,7 @@ class Database:
         self, chatId: int
     ) -> sqlite3.OperationalError | list[Any]:
         query = """
-        SELECT * FROM messages WHERE chatId = ?
+        SELECT * FROM messages WHERE chatId = ? AND (role = 'assistant' OR role = 'user')
         """
         try:
             self.cur.execute(query, (chatId,))
@@ -189,9 +191,7 @@ class Database:
             )
         return prompt
 
-    async def GetUser(
-        self, user_name: str
-    ) -> sqlite3.OperationalError | list[Any]:
+    async def GetUser(self, user_name: str) -> sqlite3.OperationalError | list[Any]:
         query = """
         SELECT userId, password FROM users WHERE userName = ?
         """
@@ -201,7 +201,21 @@ class Database:
         except sqlite3.Error as e:
             raise sqlite3.OperationalError(f"Unable to find user: {e}")
 
-        return row 
+        return row
+
+    async def GetUserChats(self, user_id: int) -> sqlite3.OperationalError | list[Any]:
+        query = """
+        SELECT * FROM chats WHERE userId = ?
+        """
+        try:
+            self.cur.execute(query, (user_id,))
+            rows = self.cur.fetchall()
+        except sqlite3.Error as e:
+            raise sqlite3.OperationalError(
+                f"Unable to get user chats for user {user_id}: {e}"
+            )
+
+        return rows
 
     async def UpdateUser(
         self,
@@ -222,7 +236,7 @@ class Database:
             self.conn.commit()
         except sqlite3.Error as e:
             raise sqlite3.OperationalError(f"Couldn't update user info : {e}")
-        
+
     async def UpdateChat(
         self,
         chat_id: int,
