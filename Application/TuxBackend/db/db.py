@@ -61,11 +61,9 @@ class Database:
         userId INTEGER PRIMARY KEY AUTOINCREMENT,
         userName TEXT NOT NULL,
         password TEXT NOT NULL,
-
-    return user_id, found
         level TEXT NOT NULL,
-        systemPrompt TEXT,
         distroOfChoice TEXT,
+        systemPrompt TEXT,
         dateCreated DATE NOT NULL
         )
         """
@@ -167,7 +165,7 @@ class Database:
         self, chatId: int
     ) -> sqlite3.OperationalError | list[Any]:
         query = """
-        SELECT * FROM messages WHERE chatId = ? AND (role = 'assistant' OR role = 'user')
+        SELECT * FROM messages WHERE chatId = ? AND ((role = 'assistant' AND toolCalls IS NULL) OR role = 'user' OR role = 'system')
         """
         try:
             self.cur.execute(query, (chatId,))
