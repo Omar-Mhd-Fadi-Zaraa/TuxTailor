@@ -7,3 +7,4 @@
 **/models.py
 **/seed_dummy_data.py
 **/.env
+docker_images/
