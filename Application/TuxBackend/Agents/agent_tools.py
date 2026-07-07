@@ -1,5 +1,5 @@
 from ddgs import DDGS
-from langchain_core.tools import tool, ToolException
+from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 
@@ -8,7 +8,7 @@ class SearchInput(BaseModel):
 
 
 @tool(args_schema=SearchInput)
-def search_the_internet(query: str) -> str | ToolException:
+def search_the_internet(query: str) -> str:
     """Use when you need more information about the user's question.
     Make sure to use this tool when a user asks about a specific package."""
     try:
