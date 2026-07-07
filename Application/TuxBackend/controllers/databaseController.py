@@ -8,7 +8,7 @@ from models.messages import (
     AssistantBehaviorMessage,
     ToolResponseMessage,
 )
-from middlewares.auth import hash_password,verify_password
+from middlewares.auth import hash_password, verify_password
 from models.schemas import ChatAddRequest, UserAddRequest
 
 
@@ -103,7 +103,7 @@ async def AddUser(user: UserAddRequest, database: Database) -> RuntimeError | in
         )
     except Exception as e:
         raise RuntimeError(f"Couldn't add user: {e}")
-    
+
     return user_id
 
 
@@ -122,7 +122,9 @@ async def Login(
     return user_id, found
 
 
-async def GetUserSysMessage(user_id: int, database: Database) -> RuntimeError | str | None:
+async def GetUserSysMessage(
+    user_id: int, database: Database
+) -> RuntimeError | str | None:
     try:
         row = await database.GetUserSysPrompt(user_id)
         sys_prompt = row[0] if row[0] else None
@@ -131,22 +133,32 @@ async def GetUserSysMessage(user_id: int, database: Database) -> RuntimeError | 
 
     return sys_prompt
 
-async def GetUserChats(user_id: int, database: Database) -> RuntimeError | list[int]:
+
+async def GetUserChats(
+    user_id: int, database: Database
+) -> RuntimeError | list[(int, str)]:
     try:
-        rows = await database.GetUserChats(user_id) 
-        chat_ids = [row[0] for row in rows] if rows else None
+        rows = await database.GetUserChats(user_id)
+        chat_ids = [(row[0], row[2]) for row in rows] if rows else []
     except Exception as e:
         raise RuntimeError(f"Could not get user chats for user {user_id}: {e}")
-    
+
     return chat_ids
 
-async def GetChatMessages(chat_id: int, database:Database) -> RuntimeError | list[str]:
+
+async def GetChatMessages(
+    chat_id: int, database: Database
+) -> RuntimeError | list[(int, str, str)]:
     try:
-        messages = await database.GetChatMessages(chat_id) 
-        message_contents = [message[3] for message in messages] if messages else None
+        messages = await database.GetChatMessages(chat_id)
+        message_contents = (
+            [(message[0], message[3], message[4]) for message in messages]
+            if messages
+            else []
+        )
     except Exception as e:
         raise RuntimeError(f"Could not get chat messages for chat {chat_id}: {e}")
-    
+
     return message_contents
 
 
@@ -161,9 +173,15 @@ async def UpdateUser(
         await databse.UpdateUser(user_id, level, system_prompt, distro_of_choice)
     except Exception as e:
         raise RuntimeError(f"Couldn't update user: {e}")
-    
-async def UpdateChatInfo(chat_id:int, database:Database,title:str|None=None,system_prompt:str|None=None) -> RuntimeError | None:
-    try: 
-        await database.UpdateChat(chat_id,title,system_prompt)
+
+
+async def UpdateChatInfo(
+    chat_id: int,
+    database: Database,
+    title: str | None = None,
+    system_prompt: str | None = None,
+) -> RuntimeError | None:
+    try:
+        await database.UpdateChat(chat_id, title, system_prompt)
     except Exception as e:
         raise RuntimeError(f"Couldn't update chat info: {e}")
