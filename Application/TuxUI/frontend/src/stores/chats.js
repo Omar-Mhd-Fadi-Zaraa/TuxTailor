@@ -277,6 +277,84 @@ function createChatsStore() {
     set([]);
   }
 
+  function loadUserChats(backendChats) {
+    const entries = Object.entries(backendChats || {}).sort(
+      ([a], [b]) => Number(a) - Number(b)
+    );
+
+    let maxMsgId = 0;
+    const loaded = entries.map(([chatIdStr, chat]) => {
+      const backendId = Number(chatIdStr);
+      let systemPrompt = "";
+      const messages = [];
+      let lastAssistant = null;
+
+      for (const row of [...(chat.messages || [])].sort(
+        (a, b) => Number(a[0]) - Number(b[0])
+      )) {
+        const msgId = Number(row[0]);
+        const content = row[1] != null ? String(row[1]) : "";
+        const role = row[2] != null ? String(row[2]) : "";
+
+        if (Number.isFinite(msgId)) {
+          maxMsgId = Math.max(maxMsgId, msgId);
+        }
+
+        if (role === "system") {
+          systemPrompt = content;
+          continue;
+        }
+
+        if (role === "user") {
+          lastAssistant = null;
+          messages.push({
+            id: String(msgId),
+            role: "user",
+            parts: [{ type: "text", content }],
+            streaming: false,
+          });
+          continue;
+        }
+
+        if (role === "assistant") {
+          const assistantMessage = {
+            id: String(msgId),
+            role: "assistant",
+            parts: content ? [{ type: "text", content }] : [],
+            streaming: false,
+          };
+          messages.push(assistantMessage);
+          lastAssistant = assistantMessage;
+          continue;
+        }
+
+        if (role === "tool" && lastAssistant) {
+          lastAssistant.parts.push({
+            type: "thinking",
+            content,
+            collapsed: true,
+          });
+        }
+      }
+
+      return {
+        id: String(backendId),
+        backendId,
+        title: chat.title || "New Chat",
+        systemPrompt,
+        messages,
+        createdAt: backendId,
+      };
+    });
+
+    if (maxMsgId > 0) {
+      _nextMsgId = maxMsgId + 1;
+    }
+
+    set(loaded);
+    return loaded;
+  }
+
   return {
     subscribe,
     set,
@@ -295,6 +373,7 @@ function createChatsStore() {
     toggleThinking,
     markError,
     clear,
+    loadUserChats,
   };
 }
 

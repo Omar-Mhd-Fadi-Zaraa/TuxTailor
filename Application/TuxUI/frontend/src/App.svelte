@@ -4,6 +4,7 @@
   import ChatView from "./components/ChatView.svelte";
   import SettingsMenu from "./components/SettingsMenu.svelte";
   import AuthView from "./components/AuthView.svelte";
+  import { FetchUserChats } from "../wailsjs/go/main/App.js";
   import { activeChatId, chats } from "./stores/chats.js";
   import { settings } from "./stores/settings.js";
   import { auth, isAuthenticated } from "./stores/auth.js";
@@ -13,6 +14,18 @@
   $: {
     const theme = $settings.theme;
     document.body.className = theme === "default" ? "" : `theme-${theme}`;
+  }
+
+  async function loadUserChatsFromBackend(userId) {
+    chats.clear();
+    try {
+      const payload = await FetchUserChats(userId, get(settings).backendUrl);
+      if (payload && Object.keys(payload).length > 0) {
+        chats.loadUserChats(payload);
+      }
+    } catch (e) {
+      console.error("Failed to load user chats:", e);
+    }
   }
 
   async function bootstrapChats() {
@@ -27,7 +40,11 @@
     activeChatId.set(id);
   }
 
-  async function handleAuthenticated() {
+  async function handleAuthenticated(event) {
+    const userId = event.detail?.userId ?? get(auth).userId;
+    if (userId) {
+      await loadUserChatsFromBackend(userId);
+    }
     await bootstrapChats();
   }
 

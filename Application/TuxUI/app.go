@@ -370,6 +370,46 @@ type message struct {
 	Query string `json:"query"`
 }
 
+type chatSummary struct {
+	Title    string `json:"title"`
+	Messages [][]any `json:"messages"`
+}
+
+// FetchUserChats loads all chats and messages via GET /user/chats/{user_id}.
+func (a *App) FetchUserChats(userID int, backendURL string) (map[string]chatSummary, error) {
+	baseURL := resolveBackendURL(backendURL)
+	endpoint := fmt.Sprintf("%s/user/chats/%d", baseURL, userID)
+
+	resp, err := http.Get(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := readResponseBody(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusNoContent {
+		return map[string]chatSummary{}, nil
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s", apiErrorMessage(resp.StatusCode, body))
+	}
+
+	var result map[string]chatSummary
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return map[string]chatSummary{}, nil
+	}
+
+	return result, nil
+}
+
 func emitError(ctx context.Context, chatID, msgID, message string) {
 	runtime.EventsEmit(ctx, "chat:error", streamErrorEvent{
 		ChatID: chatID, MsgID: msgID, Message: message,
