@@ -30,6 +30,8 @@ from controllers.databaseController import (
     AddUser,
     Login,
     GetUserSysMessage,
+    GetUserChats,
+    GetChatMessages,
     UpdateUser,
     UpdateChatInfo,
     get_db,
@@ -151,8 +153,24 @@ async def update_chat_info(
     )
 
 
-@user.get("/chats")
-async def get_user_chats(): ...
+@user.get("/chats/{user_id}")
+async def get_user_chats(user_id: int, db=Depends(get_db)):
+    try:
+        chats = await GetUserChats(user_id, db)
+        if not chats:
+            return JSONResponse(
+                status_code=status.HTTP_204_NO_CONTENT,
+            )
+        chats_dict = {}
+        for id, title in chats:
+            chats_dict[id] = {"title": title, "messages": await GetChatMessages(id, db)}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Could not get user chats: {e}",
+        )
+
+    return JSONResponse(content=chats_dict, status_code=status.HTTP_200_OK)
 
 
 @user.post("/signup")
