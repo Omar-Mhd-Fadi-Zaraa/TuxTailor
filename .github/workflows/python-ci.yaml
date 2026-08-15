@@ -2,7 +2,7 @@ name: CI/CD for TuxTailor
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name:  Display Python version and location
+      - name: Display Python version and location
         run: |
-          python-version
+          python --version
           which python
