@@ -1,6 +1,6 @@
 .cursor/
+*.egg-info/
 .vscode/
-.github/
 **/TuxTailor.db
 **/__pycache__/
 **/test
