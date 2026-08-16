@@ -1,14 +1,15 @@
-from fastapi.requests import Request
 import json
 
+from fastapi.requests import Request
+
 from db.db import Database
-from models.messages import (
-    UserMessage,
-    AssistantMessage,
-    AssistantBehaviorMessage,
-    ToolResponseMessage,
-)
 from middlewares.auth import hash_password, verify_password
+from models.messages import (
+    AssistantBehaviorMessage,
+    AssistantMessage,
+    ToolResponseMessage,
+    UserMessage,
+)
 from models.schemas import ChatAddRequest, UserAddRequest
 
 

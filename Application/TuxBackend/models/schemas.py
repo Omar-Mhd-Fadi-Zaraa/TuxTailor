@@ -1,7 +1,7 @@
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
 from langchain_core.messages import HumanMessage
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Role(str, Enum):

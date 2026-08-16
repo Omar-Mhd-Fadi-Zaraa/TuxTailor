@@ -1,23 +1,13 @@
 import asyncio
-import httpx
-
-from fastapi import FastAPI, HTTPException, APIRouter, Depends, status
-from fastapi.responses import StreamingResponse, JSONResponse
 from contextlib import asynccontextmanager
+
+import httpx
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
+from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.messages import SystemMessage
 
-from models.schemas import (
-    ChatAgentRequest,
-    ChatAddRequest,
-    ChatUpdateRequest,
-    UserAddRequest,
-    UserLoginRequest,
-    UserUpdateRequest,
-)
-from models.messages import UserMessage
 from Agents.agents import ChatAgent
-from middlewares.auth import validate_ollama_url
-from db.db import Database
+from config import consts
 from controllers.chatAgentController import (
     get_chat_agent,
     persist_agent_messages,
@@ -25,18 +15,28 @@ from controllers.chatAgentController import (
     to_langchain_messages,
 )
 from controllers.databaseController import (
-    AddUserMessage,
     AddChat,
     AddUser,
-    Login,
-    GetUserSysMessage,
-    GetUserChats,
+    AddUserMessage,
     GetChatMessages,
-    UpdateUser,
+    GetUserChats,
+    GetUserSysMessage,
+    Login,
     UpdateChatInfo,
+    UpdateUser,
     get_db,
 )
-import config.consts as consts
+from db.db import Database
+from middlewares.auth import validate_ollama_url
+from models.messages import UserMessage
+from models.schemas import (
+    ChatAddRequest,
+    ChatAgentRequest,
+    ChatUpdateRequest,
+    UserAddRequest,
+    UserLoginRequest,
+    UserUpdateRequest,
+)
 
 base = APIRouter(prefix="/base", tags=["base"])
 chat = APIRouter(prefix="/chat", tags=["chat"])

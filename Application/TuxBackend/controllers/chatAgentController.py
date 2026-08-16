@@ -1,6 +1,7 @@
 import asyncio
 import json
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from fastapi.requests import Request
 from langchain_core.messages import (
@@ -12,11 +13,11 @@ from langchain_core.messages import (
 )
 
 from Agents.agents import ChatAgent
-from db.db import Database
 from controllers.databaseController import (
     AddAiMessage,
     AddToolMessage,
 )
+from db.db import Database
 from models.messages import (
     AssistantMessage,
     ToolResponseMessage,

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 
-from routes.routes import base, chat, user, lifespan
+from routes.routes import base, chat, lifespan, user
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(base)

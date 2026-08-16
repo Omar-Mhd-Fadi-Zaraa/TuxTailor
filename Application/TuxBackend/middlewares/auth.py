@@ -1,16 +1,18 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
 
-from config.consts import JWT_SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from config.consts import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET_KEY
 
 _password_hasher = PasswordHash.recommended()
 
 
-async def validate_ollama_url(base_url: str, timeout: float = 5.0) -> RuntimeError | None:
+async def validate_ollama_url(
+    base_url: str, timeout: float = 5.0
+) -> RuntimeError | None:
     url = base_url.rstrip("/")
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -37,7 +39,7 @@ def create_access_token(
     if not JWT_SECRET_KEY:
         raise RuntimeError("JWT_SECRET_KEY is not set")
 
-    expire = datetime.now(timezone.utc) + (
+    expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     payload = {"sub": str(subject), "exp": expire}

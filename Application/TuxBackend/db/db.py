@@ -1,12 +1,11 @@
 import sqlite3
 from typing import Any
 
-from models.schemas import Role
 from Agents.agents import ToolCallStatus
+from models.schemas import Role
 
 
 class Database:
-
     def __init__(self):
         self.conn = sqlite3.connect("TuxTailor.db", check_same_thread=False)
         self.cur = self.conn.cursor()
