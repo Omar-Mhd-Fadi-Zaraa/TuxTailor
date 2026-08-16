@@ -3,6 +3,7 @@
 build/
 .vscode/
 *.egg-info/
+build/
 **/TuxTailor.db
 **/__pycache__/
 **/test
