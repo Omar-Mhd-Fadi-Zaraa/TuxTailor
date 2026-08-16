@@ -2,6 +2,7 @@
 *.egg-info/
 build/
 .vscode/
+*.egg-info/
 **/TuxTailor.db
 **/__pycache__/
 **/test
