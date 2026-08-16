@@ -9,4 +9,5 @@ build/
 **/models.py
 **/seed_dummy_data.py
 **/.env
+pyrightconfig.json
 docker_images/
