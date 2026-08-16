@@ -1,5 +1,6 @@
 .cursor/
 *.egg-info/
+build/
 .vscode/
 **/TuxTailor.db
 **/__pycache__/
