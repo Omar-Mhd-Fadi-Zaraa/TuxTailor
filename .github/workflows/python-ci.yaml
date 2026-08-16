@@ -19,3 +19,13 @@ jobs:
         run: |
           python --version
           which python
+      - name: Linting and format checks
+        run: |
+          ruff check Application/TuxBackend
+          black --check Application/TuxBackend
+      - name: Static type checks
+        run: |
+          mypy Application/TuxBackend
+      - name: Security checks
+        run: |
+          bandit -c Application/TuxBackend/pyproject.toml -r Application/TuxBackend
