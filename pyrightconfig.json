@@ -1,0 +1,5 @@
+{
+  "venvPath": "Application/TuxBackend",
+  "venv": ".venv",
+  "extraPaths": ["Application/TuxBackend"]
+}
