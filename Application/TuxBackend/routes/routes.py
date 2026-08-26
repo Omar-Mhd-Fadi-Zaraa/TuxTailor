@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.messages import SystemMessage
 
-from Agents.agents import ChatAgent
+from agents.agents_definition import ChatAgent
 from config import consts
 from controllers.chatAgentController import (
     get_chat_agent,
@@ -65,11 +65,6 @@ async def lifespan(app: FastAPI):
             f"{consts.OLLAMA_BASE_URL}/api/generate",
             json={"model": consts.CHAT_MODEL, "keep_alive": 0},
         )
-
-
-@base.post("/health")
-def health_check():
-    return {"ok": True}
 
 
 @chat.post("/invoke")
