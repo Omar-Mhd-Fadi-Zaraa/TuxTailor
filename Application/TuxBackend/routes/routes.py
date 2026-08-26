@@ -143,7 +143,7 @@ async def update_chat_info(
         )
 
     return JSONResponse(
-        content={"message": f"chat {chat_id} info uodated"},
+        content={"message": f"chat {chat_id} info updated"},
         status_code=status.HTTP_200_OK,
     )
 
