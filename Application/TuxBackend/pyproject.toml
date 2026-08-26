@@ -58,3 +58,12 @@ exclude_dirs = [".venv", "__pycahce__", "build", "dist"]
 
 [tool.pytest.ini_options]
 addopts = "-rA -s -v"
+markers = [
+  "post: marks API POST routes",
+  "get: marks API GET routes",
+  "patch: marks API PATCH routes",
+  "delete: marks API DELETE routes",
+  "chat: marks API chat routes",
+  "user: marks API user routes",
+  "base: marks API base routes",
+]
