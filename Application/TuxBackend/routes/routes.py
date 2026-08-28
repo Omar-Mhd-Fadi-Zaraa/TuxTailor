@@ -8,13 +8,13 @@ from langchain_core.messages import SystemMessage
 
 from agents.agents_definition import ChatAgent
 from config import consts
-from controllers.chatAgentController import (
+from controllers.chat_agent_controller import (
     get_chat_agent,
     persist_agent_messages,
     stream_filtered_response,
     to_langchain_messages,
 )
-from controllers.databaseController import (
+from controllers.database_controller import (
     AddChat,
     AddUser,
     AddUserMessage,
