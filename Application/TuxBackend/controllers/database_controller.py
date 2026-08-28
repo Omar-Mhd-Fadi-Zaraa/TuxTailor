@@ -1,4 +1,5 @@
 import json
+import sqlite3
 
 from fastapi.requests import Request
 
@@ -17,10 +18,10 @@ def get_db(request: Request) -> Database:
     return request.app.state.db
 
 
-async def AddUserMessage(
-    userMessage: UserMessage, database: Database
-) -> RuntimeError | None:
+async def AddUserMessage(userMessage: UserMessage, database: Database) -> None:
     try:
+        if isinstance(userMessage.lcmsg.content, list):
+            raise TypeError("Message content must be a string")
         await database.AddMessage(
             userMessage.chat_id,
             userMessage.user_id,
@@ -28,14 +29,14 @@ async def AddUserMessage(
             userMessage.role,
             userMessage.date_sent,
         )
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't add user message: {e}")
 
 
-async def AddAiMessage(
-    aiMessage: AssistantMessage, database: Database
-) -> RuntimeError | None:
+async def AddAiMessage(aiMessage: AssistantMessage, database: Database) -> None:
     try:
+        if isinstance(aiMessage.lcmsg.content, list):
+            raise TypeError("Message content must be a string")
         tool_calls = aiMessage.lcmsg.tool_calls
         await database.AddMessage(
             aiMessage.chat_id,
@@ -43,17 +44,17 @@ async def AddAiMessage(
             aiMessage.lcmsg.content,
             aiMessage.role,
             aiMessage.date_sent,
-            toolCall=True if tool_calls else False,
+            toolCall=bool(tool_calls),
             toolCalls=json.dumps(tool_calls) if tool_calls else None,
         )
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't add ai message: {e}")
 
 
-async def AddToolMessage(
-    toolMessage: ToolResponseMessage, database: Database
-) -> RuntimeError | None:
+async def AddToolMessage(toolMessage: ToolResponseMessage, database: Database) -> None:
     try:
+        if isinstance(toolMessage.lcmsg.content, list):
+            raise TypeError("Message content must be a string")
         await database.AddMessage(
             toolMessage.chat_id,
             toolMessage.user_id,
@@ -63,14 +64,16 @@ async def AddToolMessage(
             toolCallStatus=toolMessage.lcmsg.status,
             preceedingMessage=toolMessage.preceeding_message,
         )
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't add tool message: {e}")
 
 
 async def AddSystemMessage(
     systemMessage: AssistantBehaviorMessage, database: Database
-) -> RuntimeError | None:
+) -> None:
     try:
+        if isinstance(systemMessage.lcmsg.content, list):
+            raise TypeError("Message content must be a string")
         await database.AddMessage(
             systemMessage.chat_id,
             systemMessage.user_id,
@@ -78,20 +81,20 @@ async def AddSystemMessage(
             systemMessage.role,
             systemMessage.date_sent,
         )
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldnt add system message: {e}")
 
 
-async def AddChat(chat: ChatAddRequest, database: Database) -> RuntimeError | int:
+async def AddChat(chat: ChatAddRequest, database: Database) -> int | None:
     try:
         new_row_id = await database.AddChat(chat.user_id, chat.title, chat.date_created)
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't add chat: {e}")
 
     return new_row_id
 
 
-async def AddUser(user: UserAddRequest, database: Database) -> RuntimeError | int:
+async def AddUser(user: UserAddRequest, database: Database) -> int | None:
     try:
         hashed_password = hash_password(user.password)
         user_id = await database.AddUser(
@@ -102,7 +105,7 @@ async def AddUser(user: UserAddRequest, database: Database) -> RuntimeError | in
             user.system_prompt,
             user.distro_of_choice,
         )
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't add user: {e}")
 
     return user_id
@@ -110,38 +113,34 @@ async def AddUser(user: UserAddRequest, database: Database) -> RuntimeError | in
 
 async def Login(
     user_name: str, password: str, database: Database
-) -> RuntimeError | tuple[int | None, bool]:
+) -> tuple[int | None, bool]:
     try:
         row = await database.GetUser(user_name)
         if row is None:
             return None, False
         user_id, hashed_pass = row
         found = verify_password(password, hashed_pass)
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't log in: {e}")
 
     return user_id, found
 
 
-async def GetUserSysMessage(
-    user_id: int, database: Database
-) -> RuntimeError | str | None:
+async def GetUserSysMessage(user_id: int, database: Database) -> str | None:
     try:
         row = await database.GetUserSysPrompt(user_id)
         sys_prompt = row[0] if row[0] else None
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't fetch user system prompt: {e}")
 
     return sys_prompt
 
 
-async def GetUserChats(
-    user_id: int, database: Database
-) -> RuntimeError | list[(int, str)]:
+async def GetUserChats(user_id: int, database: Database) -> list[tuple[int, str]]:
     try:
         rows = await database.GetUserChats(user_id)
         chat_ids = [(row[0], row[2]) for row in rows] if rows else []
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Could not get user chats for user {user_id}: {e}")
 
     return chat_ids
@@ -149,7 +148,7 @@ async def GetUserChats(
 
 async def GetChatMessages(
     chat_id: int, database: Database
-) -> RuntimeError | list[(int, str, str)]:
+) -> list[tuple[int, str, str]]:
     try:
         messages = await database.GetChatMessages(chat_id)
         message_contents = (
@@ -157,7 +156,7 @@ async def GetChatMessages(
             if messages
             else []
         )
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Could not get chat messages for chat {chat_id}: {e}")
 
     return message_contents
@@ -169,10 +168,10 @@ async def UpdateUser(
     level: str | None = None,
     system_prompt: str | None = None,
     distro_of_choice: str | None = None,
-) -> RuntimeError | None:
+) -> None:
     try:
         await databse.UpdateUser(user_id, level, system_prompt, distro_of_choice)
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't update user: {e}")
 
 
@@ -181,8 +180,8 @@ async def UpdateChatInfo(
     database: Database,
     title: str | None = None,
     system_prompt: str | None = None,
-) -> RuntimeError | None:
+) -> None:
     try:
         await database.UpdateChat(chat_id, title, system_prompt)
-    except Exception as e:
+    except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't update chat info: {e}")
