@@ -154,6 +154,7 @@ async def get_user_chats(user_id: int, db=Depends(get_db)):
         chats = await GetUserChats(user_id, db)
         if not chats:
             return JSONResponse(
+                content="",
                 status_code=status.HTTP_204_NO_CONTENT,
             )
         chats_dict = {}
