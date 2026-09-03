@@ -5,10 +5,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Role(str, Enum):
-    USER: str = "user"
-    ASSISTANT: str = "assistant"
-    SYSTEM: str = "system"
-    TOOL: str = "tool"
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+    TOOL = "tool"
 
 
 # Message related requests
