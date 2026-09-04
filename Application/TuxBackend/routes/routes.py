@@ -1,10 +1,14 @@
 import asyncio
+import sqlite3
 from contextlib import asynccontextmanager
 
 import httpx
+import pydantic
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.messages import SystemMessage
+from pydantic_core import PydanticSerializationError
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
 from agents.agents_definition import ChatAgent
 from config import consts
@@ -87,24 +91,27 @@ async def invoke_agent(
             LCMessages.append(SystemMessage(user_sys_prompt))
         LCMessages.extend(to_langchain_messages(chat_messages))
         LCMessages.append(req.to_langchain_msg())
+    except pydantic.ValidationError as e:
+        detail = {
+            "message": "Unable to create LangChain Message",
+            "errors": [{"type": type(e).__name__, "message": str(e)}],
+        }
 
-    except Exception as e:
-        if isinstance(e, BaseExceptionGroup):
-            detail = {
-                "message": "Unable to invoke agent",
-                "errors": [
-                    {"type": type(sub).__name__, "message": str(sub)}
-                    for sub in e.exceptions
-                ],
-            }
-        else:
-            detail = {
-                "message": "Unable to invoke agent",
-                "errors": [{"type": type(e).__name__, "message": str(e)}],
-            }
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail
-        )
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+    except RuntimeError as e:
+        detail = {
+            "message": "Error while adding user message or getting the user system message",
+            "errors": [{"type": type(e).__name__, "message": str(e)}],
+        }
+
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+    except sqlite3.OperationalError as e:
+        detail = {
+            "message": "Unable to get chat messages",
+            "errors": [{"type": type(e).__name__, "message": str(e)}],
+        }
+
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
 
     result: dict = {}
 
@@ -120,7 +127,7 @@ async def invoke_agent(
 async def add_chat(req: ChatAddRequest, db=Depends(get_db)):
     try:
         new_chat_id = await AddChat(req, db)
-    except Exception as e:
+    except RuntimeError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't add chat: {e}",
@@ -136,7 +143,7 @@ async def update_chat_info(
     try:
         data = chat_info.model_dump(exclude_unset=True, by_alias=False)
         await UpdateChatInfo(chat_id, db, **data)
-    except Exception as e:
+    except RuntimeError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update chat info: {e}",
@@ -160,10 +167,15 @@ async def get_user_chats(user_id: int, db=Depends(get_db)):
         chats_dict = {}
         for id, title in chats:
             chats_dict[id] = {"title": title, "messages": await GetChatMessages(id, db)}
-    except Exception as e:
+    except RuntimeError as e:
+        detail = {
+            "message": "Error while getting chats",
+            "errors": [{"type": type(e).__name__, "message": str(e)}],
+        }
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Could not get user chats: {e}",
+            detail=detail,
         )
 
     return JSONResponse(content=chats_dict, status_code=status.HTTP_200_OK)
@@ -173,7 +185,7 @@ async def get_user_chats(user_id: int, db=Depends(get_db)):
 async def add_user(user: UserAddRequest, db=Depends(get_db)):
     try:
         new_user_id = await AddUser(user, db)
-    except Exception as e:
+    except RuntimeError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't add user: {e}",
@@ -186,7 +198,7 @@ async def add_user(user: UserAddRequest, db=Depends(get_db)):
 async def log_in(user_info: UserLoginRequest, db=Depends(get_db)):
     try:
         user_id, logged = await Login(user_info.user_name, user_info.password, db)
-    except Exception as e:
+    except RuntimeError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occured with the database: {e}",
@@ -212,7 +224,14 @@ async def update_user_info(
     try:
         data = user_info.model_dump(by_alias=False, exclude_unset=True)
         await UpdateUser(user_id, db, **data)
-    except Exception as e:
+    except PydanticSerializationError as e:
+        detail = {
+            "message": "Could not serialize the user update request",
+            "errors": [{"type": type(e).__name__, "message": str(e)}],
+        }
+
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+    except RuntimeError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Couldn't update user: {e}",
