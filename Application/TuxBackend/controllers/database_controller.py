@@ -82,7 +82,7 @@ async def AddSystemMessage(
             systemMessage.date_sent,
         )
     except sqlite3.OperationalError as e:
-        raise RuntimeError(f"Couldnt add system message: {e}")
+        raise RuntimeError(f"Couldn't add system message: {e}")
 
 
 async def AddChat(chat: ChatAddRequest, database: Database) -> int | None:
