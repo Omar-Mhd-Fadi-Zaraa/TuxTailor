@@ -365,3 +365,29 @@ def test_GetChatMessages(mock_db):
     assert str(err_info.value) == "Could not get chat messages for chat 1: "
 
     mock_db.GetChatMessages.assert_called_with(1)
+
+
+@pytest.mark.update
+def test_UpdateUser(mock_db):
+    ret = asyncio.run(database_controller.UpdateUser(1, mock_db, level="advanced"))
+    assert ret is None
+
+    mock_db.UpdateUser.side_effect = sqlite3.OperationalError()
+    with pytest.raises(RuntimeError) as err_info:
+        asyncio.run(database_controller.UpdateUser(1, mock_db, level="advanced"))
+    assert str(err_info.value) == "Couldn't update user: "
+
+    mock_db.UpdateUser.assert_called_with(1, "advanced", None, None)
+
+
+@pytest.mark.update
+def test_UpdateChatInfo(mock_db):
+    ret = asyncio.run(database_controller.UpdateChatInfo(1, mock_db, title="New Chat"))
+    assert ret is None
+
+    mock_db.UpdateChat.side_effect = sqlite3.OperationalError()
+    with pytest.raises(RuntimeError) as err_info:
+        asyncio.run(database_controller.UpdateChatInfo(1, mock_db, title="New Chat"))
+    assert str(err_info.value) == "Couldn't update chat info: "
+
+    mock_db.UpdateChat.assert_called_with(1, "New Chat", None)
