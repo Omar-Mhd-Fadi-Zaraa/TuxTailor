@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from models.schemas import ChatAgentRequest
 from db.db import Database
+from models.schemas import ChatAgentRequest
 
 
 @pytest.fixture(scope="module")
