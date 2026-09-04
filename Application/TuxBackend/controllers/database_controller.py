@@ -129,7 +129,7 @@ async def Login(
 async def GetUserSysMessage(user_id: int, database: Database) -> str | None:
     try:
         row = await database.GetUserSysPrompt(user_id)
-        sys_prompt = row[0] if row[0] else None
+        sys_prompt = row[0] if row and row[0] else None
     except sqlite3.OperationalError as e:
         raise RuntimeError(f"Couldn't fetch user system prompt: {e}")
 
@@ -139,11 +139,11 @@ async def GetUserSysMessage(user_id: int, database: Database) -> str | None:
 async def GetUserChats(user_id: int, database: Database) -> list[tuple[int, str]]:
     try:
         rows = await database.GetUserChats(user_id)
-        chat_ids = [(row[0], row[2]) for row in rows] if rows else []
+        chats = [(row[0], row[2]) for row in rows]
     except sqlite3.OperationalError as e:
         raise RuntimeError(f"Could not get user chats for user {user_id}: {e}")
 
-    return chat_ids
+    return chats
 
 
 async def GetChatMessages(
@@ -151,11 +151,9 @@ async def GetChatMessages(
 ) -> list[tuple[int, str, str]]:
     try:
         messages = await database.GetChatMessages(chat_id)
-        message_contents = (
-            [(message[0], message[3], message[4]) for message in messages]
-            if messages
-            else []
-        )
+        message_contents = [
+            (message[0], message[3], message[4]) for message in messages
+        ]
     except sqlite3.OperationalError as e:
         raise RuntimeError(f"Could not get chat messages for chat {chat_id}: {e}")
 
