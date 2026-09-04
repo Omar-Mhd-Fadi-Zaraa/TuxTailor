@@ -66,4 +66,8 @@ markers = [
   "chat: marks API chat routes",
   "user: marks API user routes",
   "base: marks API base routes",
+  "insert: marks database INSERT operations",
+  "update: marks database UPDATE operations",
+  "delete: marks database DELETE operations",
+  "select: marks database SELECT operations",
 ]
