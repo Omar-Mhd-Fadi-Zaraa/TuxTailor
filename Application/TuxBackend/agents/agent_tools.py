@@ -1,4 +1,5 @@
 from ddgs import DDGS
+from ddgs.exceptions import DDGSException, RatelimitException, TimeoutException
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
@@ -13,15 +14,19 @@ def search_the_internet(query: str) -> str:
     Make sure to use this tool when a user asks about a specific package."""
     try:
         with DDGS() as ddgs:
-            results = ddgs.text(query, max_results=10, backend="duckduckgo")
+            results = ddgs.text(query, max_results=10, backend="duckduckgo") or []
 
             results = [
                 r
                 for r in results
                 if r.get("href") and "duckduckgo.com" not in r["href"]
             ]
-    except Exception as e:
-        return f"Could not complete search query: {e}"
+    except RatelimitException as e:
+        return f"Rate limit hit: {e}"
+    except TimeoutException as e:
+        return f"Time out hit: {e}"
+    except DDGSException as e:
+        return f"Something went wrong while fetching results: {e}"
 
     return (
         "\n\n".join(f"{r['title']}\n{r['href']}\n{r['body']}" for r in results)
