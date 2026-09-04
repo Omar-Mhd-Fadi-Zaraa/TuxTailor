@@ -32,20 +32,20 @@ def get_chat_agent(request: Request) -> ChatAgent:
 def to_langchain_messages(rows: list[Any]) -> list[AnyMessage]:
     messages: list[AnyMessage] = []
     for row in rows:
-        match row[3]:
+        match row[4]:
             case Role.USER:
-                messages.append(HumanMessage(content=row[2]))
+                messages.append(HumanMessage(content=row[3]))
             case Role.SYSTEM:
-                messages.insert(0, SystemMessage(content=row[2]))
+                messages.insert(0, SystemMessage(content=row[3]))
             case Role.ASSISTANT:
                 messages.append(
                     AIMessage(
-                        content=row[2],
-                        tool_calls=json.loads(row[5]) if row[5] else [],
+                        content=row[3],
+                        tool_calls=json.loads(row[6]) if row[6] else [],
                     )
                 )
             case Role.TOOL:
-                messages.append(ToolMessage(content=row[2], status=row[7]))
+                messages.append(ToolMessage(content=row[3], status=row[7]))
 
     return messages
 
