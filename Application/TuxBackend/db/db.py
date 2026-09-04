@@ -1,9 +1,6 @@
 import sqlite3
 from typing import Any, Literal
 
-from agents.agents_definition import ToolCallStatus
-from models.schemas import Role
-
 
 class Database:
     def __init__(self):
@@ -128,13 +125,13 @@ class Database:
         chatId: int,
         userId: int,
         content: str,
-        role: Role,
+        role: str,
         dateSent: str,
         toolCall: bool | None = None,
         toolCalls: str | None = None,
-        toolCallStatus: ToolCallStatus | None = None,
+        toolCallStatus: Literal["success", "error"] | None = None,
         preceedingMessage: str | None = None,
-    ) -> sqlite3.OperationalError | None:
+    ) -> None:
         query = """
         INSERT INTO messages (chatId, userId, content, role, toolCall, toolCalls, toolCallStatus, preceedingMessage, dateSent) 
         VALUES (?,?,?,?,?,?,?,?,?)
@@ -158,9 +155,7 @@ class Database:
         except sqlite3.Error as e:
             raise sqlite3.OperationalError(f"Unable to add message: {e}")
 
-    async def GetChatMessages(
-        self, chatId: int
-    ) -> sqlite3.OperationalError | list[Any]:
+    async def GetChatMessages(self, chatId: int) -> list[Any]:
         query = """
         SELECT * FROM messages WHERE chatId = ? AND ((role = 'assistant' AND toolCalls IS NULL) OR role = 'user' OR role = 'system')
         """
@@ -186,7 +181,7 @@ class Database:
             )
         return prompt
 
-    async def GetUser(self, user_name: str) -> sqlite3.OperationalError | list[Any]:
+    async def GetUser(self, user_name: str) -> list[Any]:
         query = """
         SELECT userId, password FROM users WHERE userName = ?
         """
@@ -198,7 +193,7 @@ class Database:
 
         return row
 
-    async def GetUserChats(self, user_id: int) -> sqlite3.OperationalError | list[Any]:
+    async def GetUserChats(self, user_id: int) -> list[Any]:
         query = """
         SELECT * FROM chats WHERE userId = ?
         """
@@ -218,7 +213,7 @@ class Database:
         level: str | None = None,
         system_prompt: str | None = None,
         distro_of_choice: str | None = None,
-    ) -> sqlite3.OperationalError | None:
+    ) -> None:
         query = """
         UPDATE users
         SET level = COALESCE(?,level),
@@ -237,7 +232,7 @@ class Database:
         chat_id: int,
         title: str | None = None,
         system_prompt: str | None = None,
-    ) -> sqlite3.OperationalError | None:
+    ) -> None:
         query_title = """
         UPDATE chats
         SET title = COALESCE(?, title)
