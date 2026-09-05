@@ -6,6 +6,7 @@ class Database:
     def __init__(self):
         self.conn = sqlite3.connect("TuxTailor.db", check_same_thread=False)
         self.cur = self.conn.cursor()
+        self.cur.execute("PRAGMA foreign_keys = ON")
         self._createUsersTable()
         self._createChatsTable()
         self._createMessagesTable()
@@ -18,10 +19,11 @@ class Database:
         query = """
         CREATE TABLE IF NOT EXISTS chats (
         chatId INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER FORIEGN KEY REFERENCES users (userId),
+        userId INTEGER,
         title TEXT NOT NULL,
         messageCount INTEGER,
-        dateCreated DATE NOT NULL
+        dateCreated DATE NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (userId)
         )
         """
         try:
@@ -34,15 +36,17 @@ class Database:
         query = """
         CREATE TABLE IF NOT EXISTS messages (
         messageId INTEGER PRIMARY KEY AUTOINCREMENT,
-        chatId INTEGER FORIEGN KEY REFERENCES chats (chatId) NOT NULL,
-        userId INTEGER FORIEGN KEY REFERENCES users (userId) NOT NULL,
+        chatId INTEGER,
+        userId INTEGER,
         content TEXT NOT NULL,
         role TEXT NOT NULL,
         toolCall BOOLEAN,
         toolCalls TEXT,
         toolCallStatus TEXT,
         preceedingMessage TEXT,
-        dateSent DATE NOT NULL
+        dateSent DATE NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (userId),
+        FOREIGN KEY (chatId) REFERENCES chats (chatId)
         )
         """
         try:
