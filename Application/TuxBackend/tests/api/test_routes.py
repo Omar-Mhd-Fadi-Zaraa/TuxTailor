@@ -23,6 +23,7 @@ class StreamingASGITransport(httpx2.AsyncBaseTransport):
         self.client = client
 
     async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
+        assert isinstance(request.stream, AsyncByteStream)
         scope = {
             "type": "http",
             "asgi": {"version": "3.0"},
@@ -94,6 +95,7 @@ class StreamingASGITransport(httpx2.AsyncBaseTransport):
 
         if app_exception is not None:
             raise app_exception
+        assert status_code is not None
 
         class _QueueStream(AsyncByteStream):
             def __init__(self):
