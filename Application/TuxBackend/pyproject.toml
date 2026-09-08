@@ -70,4 +70,5 @@ markers = [
   "update: marks database UPDATE operations",
   "delete: marks database DELETE operations",
   "select: marks database SELECT operations",
+  "chat_agent: marks tests directed at the chat agent",
 ]
