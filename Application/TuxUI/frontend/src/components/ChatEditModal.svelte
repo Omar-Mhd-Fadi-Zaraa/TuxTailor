@@ -90,7 +90,7 @@
 
       <label class="field">
         <span>Title</span>
-        <input type="text" bind:value={localTitle} disabled={saving} />
+        <input type="text" bind:value={localTitle} maxlength="100" disabled={saving} />
       </label>
 
       <label class="field">
@@ -98,6 +98,7 @@
         <textarea
           bind:value={localSystemPrompt}
           rows="6"
+          maxlength="2000"
           placeholder="Optional instructions for this chat only"
           disabled={saving}
         ></textarea>

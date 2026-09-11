@@ -102,6 +102,7 @@
           type="text"
           bind:value={userName}
           autocomplete="username"
+          maxlength="50"
           on:keydown={handleKeydown}
           disabled={loading}
         />
@@ -113,6 +114,7 @@
           type="password"
           bind:value={password}
           autocomplete={mode === "signup" ? "new-password" : "current-password"}
+          maxlength="128"
           on:keydown={handleKeydown}
           disabled={loading}
         />
@@ -125,6 +127,7 @@
             type="password"
             bind:value={confirmPassword}
             autocomplete="new-password"
+            maxlength="128"
             on:keydown={handleKeydown}
             disabled={loading}
           />
@@ -151,6 +154,7 @@
             type="text"
             bind:value={distro}
             placeholder="e.g. Arch Linux, Ubuntu"
+            maxlength="100"
             disabled={loading}
           />
         </label>
@@ -161,6 +165,7 @@
             bind:value={systemPrompt}
             rows="4"
             placeholder="How should the agent behave?"
+            maxlength="2000"
             disabled={loading}
           ></textarea>
         </label>

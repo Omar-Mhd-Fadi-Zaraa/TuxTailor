@@ -13,7 +13,11 @@
 
   $: {
     const theme = $settings.theme;
-    document.body.className = theme === "default" ? "" : `theme-${theme}`;
+    const themeClass = theme === "default" ? "" : `theme-${theme}`;
+    document.body.classList.forEach((cls) => {
+      if (cls.startsWith("theme-")) document.body.classList.remove(cls);
+    });
+    if (themeClass) document.body.classList.add(themeClass);
   }
 
   async function loadUserChatsFromBackend(userId) {

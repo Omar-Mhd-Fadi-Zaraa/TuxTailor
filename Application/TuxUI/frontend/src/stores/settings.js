@@ -63,7 +63,7 @@ function createSettingsStore() {
     update((s) => persist({ ...s, backendUrl }));
   }
 
-  return { subscribe, set, setTheme, toggleDarkMode, setProfile, setBackendUrl };
+  return { subscribe, setTheme, toggleDarkMode, setProfile, setBackendUrl };
 }
 
 export const settings = createSettingsStore();

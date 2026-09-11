@@ -14,6 +14,18 @@ const localId = () => `local-${_nextLocalId++}`;
 function createChatsStore() {
   const { subscribe, update, set } = writable([]);
 
+  function updateMessage(chatId, msgId, fn) {
+    update((chats) =>
+      chats.map((c) => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map((m) => (m.id !== msgId ? m : fn(m))),
+        };
+      })
+    );
+  }
+
   function newLocalChat() {
     const id = localId();
     update((chats) => [
@@ -129,148 +141,80 @@ function createChatsStore() {
   }
 
   function appendChunk(chatId, msgId, type, content) {
-    update((chats) =>
-      chats.map((c) => {
-        if (c.id !== chatId) return c;
-        return {
-          ...c,
-          messages: c.messages.map((m) => {
-            if (m.id !== msgId) return m;
-            const parts = [...m.parts];
-            const last = parts[parts.length - 1];
-            if (last && last.type === type && type !== "confirmation") {
-              parts[parts.length - 1] = {
-                ...last,
-                content: last.content + content,
-              };
-            } else {
-              const newPart =
-                type === "thinking"
-                  ? { type, content, collapsed: false }
-                  : { type, content };
-              parts.push(newPart);
-            }
-            return { ...m, parts };
-          }),
+    updateMessage(chatId, msgId, (m) => {
+      const parts = [...m.parts];
+      const last = parts[parts.length - 1];
+      if (last && last.type === type && type !== "confirmation") {
+        parts[parts.length - 1] = {
+          ...last,
+          content: last.content + content,
         };
-      })
-    );
+      } else {
+        const newPart =
+          type === "thinking"
+            ? { type, content, collapsed: false }
+            : { type, content };
+        parts.push(newPart);
+      }
+      return { ...m, parts };
+    });
   }
 
   function appendMedia(chatId, msgId, mediaType, url, alt) {
-    update((chats) =>
-      chats.map((c) => {
-        if (c.id !== chatId) return c;
-        return {
-          ...c,
-          messages: c.messages.map((m) => {
-            if (m.id !== msgId) return m;
-            return {
-              ...m,
-              parts: [...m.parts, { type: "media", mediaType, url, alt }],
-            };
-          }),
-        };
-      })
-    );
+    updateMessage(chatId, msgId, (m) => ({
+      ...m,
+      parts: [...m.parts, { type: "media", mediaType, url, alt }],
+    }));
   }
 
   function appendConfirmation(chatId, msgId, prompt, options) {
-    update((chats) =>
-      chats.map((c) => {
-        if (c.id !== chatId) return c;
-        return {
-          ...c,
-          messages: c.messages.map((m) => {
-            if (m.id !== msgId) return m;
-            return {
-              ...m,
-              parts: [
-                ...m.parts,
-                { type: "confirmation", prompt, options, resolved: null },
-              ],
-            };
-          }),
-        };
-      })
-    );
+    updateMessage(chatId, msgId, (m) => ({
+      ...m,
+      parts: [
+        ...m.parts,
+        { type: "confirmation", prompt, options, resolved: null },
+      ],
+    }));
   }
 
   function resolveConfirmation(chatId, msgId, partIndex, option) {
-    update((chats) =>
-      chats.map((c) => {
-        if (c.id !== chatId) return c;
-        return {
-          ...c,
-          messages: c.messages.map((m) => {
-            if (m.id !== msgId) return m;
-            const parts = m.parts.map((p, i) =>
-              i === partIndex ? { ...p, resolved: option } : p
-            );
-            return { ...m, parts };
-          }),
-        };
-      })
-    );
+    updateMessage(chatId, msgId, (m) => ({
+      ...m,
+      parts: m.parts.map((p, i) =>
+        i === partIndex ? { ...p, resolved: option } : p
+      ),
+    }));
   }
 
   function finishStream(chatId, msgId) {
-    update((chats) =>
-      chats.map((c) => {
-        if (c.id !== chatId) return c;
-        return {
-          ...c,
-          messages: c.messages.map((m) => {
-            if (m.id !== msgId) return m;
-            const parts = m.parts.map((p) =>
-              p.type === "thinking" ? { ...p, collapsed: true } : p
-            );
-            return { ...m, parts, streaming: false };
-          }),
-        };
-      })
-    );
+    updateMessage(chatId, msgId, (m) => ({
+      ...m,
+      parts: m.parts.map((p) =>
+        p.type === "thinking" ? { ...p, collapsed: true } : p
+      ),
+      streaming: false,
+    }));
   }
 
   function toggleThinking(chatId, msgId, partIndex) {
-    update((chats) =>
-      chats.map((c) => {
-        if (c.id !== chatId) return c;
-        return {
-          ...c,
-          messages: c.messages.map((m) => {
-            if (m.id !== msgId) return m;
-            const parts = m.parts.map((p, i) =>
-              i === partIndex ? { ...p, collapsed: !p.collapsed } : p
-            );
-            return { ...m, parts };
-          }),
-        };
-      })
-    );
+    updateMessage(chatId, msgId, (m) => ({
+      ...m,
+      parts: m.parts.map((p, i) =>
+        i === partIndex ? { ...p, collapsed: !p.collapsed } : p
+      ),
+    }));
   }
 
   function markError(chatId, msgId, errorText) {
-    update((chats) =>
-      chats.map((c) => {
-        if (c.id !== chatId) return c;
-        return {
-          ...c,
-          messages: c.messages.map((m) => {
-            if (m.id !== msgId) return m;
-            return {
-              ...m,
-              streaming: false,
-              parts: [
-                ...m.parts,
-                { type: "text", content: `Error: ${errorText}` },
-              ],
-              error: true,
-            };
-          }),
-        };
-      })
-    );
+    updateMessage(chatId, msgId, (m) => ({
+      ...m,
+      streaming: false,
+      parts: [
+        ...m.parts,
+        { type: "text", content: `Error: ${errorText}` },
+      ],
+      error: true,
+    }));
   }
 
   function clear() {
@@ -357,7 +301,6 @@ function createChatsStore() {
 
   return {
     subscribe,
-    set,
     newLocalChat,
     registerChat,
     promoteChat,

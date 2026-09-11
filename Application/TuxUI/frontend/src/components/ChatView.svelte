@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
   import { get } from "svelte/store";
-  import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime.js";
+  import { EventsOn } from "../../wailsjs/runtime/runtime.js";
   import { StreamMessage, CreateChat, UpdateChat } from "../../wailsjs/go/main/App.js";
   import { chats, activeChatId, activeChat, ensureActiveChat } from "../stores/chats.js";
   import { settings } from "../stores/settings.js";
@@ -11,16 +11,28 @@
   let input = "";
   let loading = false;
   let messageListEl;
+  let textareaEl;
+  let scrollRafId = null;
 
   // Track the in-flight assistant message id so events can target it
   let pendingMsgId = null;
   let pendingChatId = null;
 
-  async function scrollToBottom() {
-    await tick();
-    if (messageListEl) {
-      messageListEl.scrollTop = messageListEl.scrollHeight;
-    }
+  function scrollToBottom() {
+    if (scrollRafId !== null) return;
+    scrollRafId = requestAnimationFrame(async () => {
+      await tick();
+      if (messageListEl) {
+        messageListEl.scrollTop = messageListEl.scrollHeight;
+      }
+      scrollRafId = null;
+    });
+  }
+
+  function autoResizeTextarea() {
+    if (!textareaEl) return;
+    textareaEl.style.height = "auto";
+    textareaEl.style.height = textareaEl.scrollHeight + "px";
   }
 
   async function send() {
@@ -35,16 +47,17 @@
     const chat = get(chats).find((c) => c.id === chatId);
     if (!chat) return;
 
-    const title =
-      chat.title === "New Chat"
-        ? query.slice(0, 40) || "New Chat"
-        : chat.title.trim() || "New Chat";
-
     input = "";
+    if (textareaEl) {
+      textareaEl.style.height = "auto";
+    }
     loading = true;
 
     try {
       if (chat.backendId === null) {
+        const title = chat.title === "New Chat"
+          ? query.slice(0, 40) || "New Chat"
+          : chat.title.trim() || "New Chat";
         const backendId = await CreateChat(
           $auth.userId,
           title,
@@ -68,7 +81,7 @@
       pendingMsgId = msgId;
       pendingChatId = chatId;
 
-      await scrollToBottom();
+      scrollToBottom();
 
       StreamMessage(chatId, msgId, query, $settings.backendUrl, $auth.userId);
     } catch (e) {
@@ -85,6 +98,7 @@
   }
 
   // ── Wails event listeners ──────────────────────────────────────────────────
+  let cancelChunk, cancelMedia, cancelConfirmation, cancelDone, cancelError;
 
   function onChunk(data) {
     if (!data || data.chatId !== pendingChatId || data.msgId !== pendingMsgId) return;
@@ -123,19 +137,22 @@
   }
 
   onMount(() => {
-    EventsOn("chat:chunk", onChunk);
-    EventsOn("chat:media", onMedia);
-    EventsOn("chat:confirmation", onConfirmation);
-    EventsOn("chat:done", onDone);
-    EventsOn("chat:error", onError);
+    cancelChunk = EventsOn("chat:chunk", onChunk);
+    cancelMedia = EventsOn("chat:media", onMedia);
+    cancelConfirmation = EventsOn("chat:confirmation", onConfirmation);
+    cancelDone = EventsOn("chat:done", onDone);
+    cancelError = EventsOn("chat:error", onError);
   });
 
   onDestroy(() => {
-    EventsOff("chat:chunk");
-    EventsOff("chat:media");
-    EventsOff("chat:confirmation");
-    EventsOff("chat:done");
-    EventsOff("chat:error");
+    cancelChunk?.();
+    cancelMedia?.();
+    cancelConfirmation?.();
+    cancelDone?.();
+    cancelError?.();
+    if (scrollRafId !== null) {
+      cancelAnimationFrame(scrollRafId);
+    }
   });
 
   // Auto-scroll when active chat changes
@@ -168,8 +185,11 @@
           class="chat-input"
           placeholder="Message TuxTailor…"
           rows="1"
+          maxlength="10000"
           bind:value={input}
+          bind:this={textareaEl}
           on:keydown={handleKeydown}
+          on:input={autoResizeTextarea}
           disabled={loading}
         ></textarea>
         <button

@@ -15,7 +15,7 @@ function createAuthStore() {
     return next;
   }
 
-  return { subscribe, set, login, logout };
+  return { subscribe, login, logout };
 }
 
 export const auth = createAuthStore();

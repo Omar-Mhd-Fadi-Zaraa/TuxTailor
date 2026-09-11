@@ -12,7 +12,6 @@
   let localTheme      = $settings.theme;
   let localDark       = $isDarkMode;
   let localBackendUrl = $settings.backendUrl;
-  let localModel      = "default";
   let localExpertise  = $settings.profile.expertise;
   let localDistro     = $settings.profile.distro;
   let localPrompt     = $settings.profile.systemPrompt;
@@ -100,13 +99,21 @@
     }
   }
 
-  function save() {
+  async function save() {
     settings.setBackendUrl(localBackendUrl);
-    settings.setProfile({
-      expertise: localExpertise,
-      distro: localDistro,
-      systemPrompt: localPrompt,
-    });
+    const profileChanged =
+      localExpertise !== $settings.profile.expertise ||
+      localDistro !== $settings.profile.distro ||
+      localPrompt !== $settings.profile.systemPrompt;
+    if (profileChanged && $auth.userId) {
+      await saveProfile();
+    } else {
+      settings.setProfile({
+        expertise: localExpertise,
+        distro: localDistro,
+        systemPrompt: localPrompt,
+      });
+    }
     onClose();
   }
 
@@ -191,15 +198,7 @@
           <h3>Backend</h3>
           <label class="field">
             <span>URL</span>
-            <input type="text" bind:value={localBackendUrl} placeholder="http://localhost:8000" />
-          </label>
-        </section>
-
-        <section class="settings-section">
-          <h3>Model</h3>
-          <label class="field">
-            <span>Model name</span>
-            <input type="text" bind:value={localModel} placeholder="e.g. llama3, mistral" />
+            <input type="text" bind:value={localBackendUrl} maxlength="200" placeholder="http://localhost:8000" />
           </label>
         </section>
 
@@ -231,6 +230,7 @@
             <input
               type="text"
               bind:value={localDistro}
+              maxlength="100"
               placeholder="e.g. Arch Linux, Ubuntu, NixOS"
             />
           </label>
@@ -243,6 +243,7 @@
             <textarea
               class="prompt-textarea"
               bind:value={localPrompt}
+              maxlength="2000"
               placeholder="Describe how you want the agent to act, its tone, priorities, etc."
               rows="5"
             ></textarea>

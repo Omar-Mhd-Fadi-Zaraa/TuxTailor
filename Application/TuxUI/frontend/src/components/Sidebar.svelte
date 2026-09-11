@@ -1,5 +1,4 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
   import { chats, activeChatId } from "../stores/chats.js";
   import { auth } from "../stores/auth.js";
   import ChatEditModal from "./ChatEditModal.svelte";
@@ -40,14 +39,9 @@
     }
   }
 
-  onMount(() => {
-    window.addEventListener("keydown", handleKeydown);
-  });
-
-  onDestroy(() => {
-    window.removeEventListener("keydown", handleKeydown);
-  });
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <aside class="sidebar">
   <div class="sidebar-header">
@@ -76,10 +70,14 @@
       <p class="empty-hint">No chats yet.</p>
     {/if}
     {#each [...$chats].reverse() as chat (chat.id)}
-      <button
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div
         class="chat-item"
         class:active={$activeChatId === chat.id}
+        role="button"
+        tabindex="0"
         on:click={() => activeChatId.set(chat.id)}
+        on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activeChatId.set(chat.id); } }}
       >
         <span class="chat-item-title">{chat.title}</span>
         <button
@@ -102,7 +100,7 @@
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
-      </button>
+      </div>
     {/each}
   </div>
 

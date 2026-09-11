@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -30,10 +31,6 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
-}
-
 const defaultBackendURL = "http://localhost:8000"
 
 func resolveBackendURL(raw string) string {
@@ -41,15 +38,25 @@ func resolveBackendURL(raw string) string {
 	if raw == "" {
 		return defaultBackendURL
 	}
-	return strings.TrimRight(raw, "/")
+	raw = strings.TrimRight(raw, "/")
+
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return defaultBackendURL
+	}
+
+	return raw
 }
 
-func parseBackendChatID(chatID string) int {
+func parseBackendChatID(chatID string) (int, error) {
 	id, err := strconv.Atoi(chatID)
-	if err != nil || id < 1 {
-		return 1
+	if err != nil {
+		return 0, fmt.Errorf("invalid chat id: %q", chatID)
 	}
-	return id
+	if id < 1 {
+		return 0, fmt.Errorf("chat id must be positive, got %d", id)
+	}
+	return id, nil
 }
 
 func readResponseBody(resp *http.Response) ([]byte, error) {
@@ -365,11 +372,6 @@ func (a *App) UpdateChat(
 	return nil
 }
 
-type message struct {
-	Role  string `json:"role"`
-	Query string `json:"query"`
-}
-
 type chatSummary struct {
 	Title    string `json:"title"`
 	Messages [][]any `json:"messages"`
@@ -491,37 +493,6 @@ func streamAgentResponse(ctx context.Context, chatID, msgID string, body io.Read
 	return nil
 }
 
-func (a *App) SendMessage(userMessage string) (string, error) {
-	payload, err := json.Marshal([]message{{Role: "user", Query: userMessage}})
-	if err != nil {
-		return "", err
-	}
-
-	resp, err := http.Post(defaultBackendURL+"/chat/message", "application/json", bytes.NewReader(payload))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var messages []message
-	if err := json.Unmarshal(body, &messages); err != nil {
-		return "", err
-	}
-
-	for i := len(messages) - 1; i >= 0; i-- {
-		if messages[i].Role != "user" {
-			return messages[i].Query, nil
-		}
-	}
-
-	return "", fmt.Errorf("no assistant reply in response")
-}
-
 type streamChunkEvent struct {
 	ChatID  string `json:"chatId"`
 	MsgID   string `json:"msgId"`
@@ -563,11 +534,17 @@ func (a *App) StreamMessage(
 	userID int,
 ) {
 	go func() {
+		backendChatID, err := parseBackendChatID(chatID)
+		if err != nil {
+			emitError(a.ctx, chatID, msgID, err.Error())
+			return
+		}
+
 		baseURL := resolveBackendURL(backendURL)
 		reqBody := chatAgentRequest{
 			Token:       "",
 			UserID:      userID,
-			ChatID:      parseBackendChatID(chatID),
+			ChatID:      backendChatID,
 			UserMessage: userMessage,
 			DateSent:    time.Now().UTC().Format(time.RFC3339),
 		}
