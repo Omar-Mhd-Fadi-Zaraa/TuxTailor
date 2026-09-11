@@ -12,7 +12,7 @@ from langchain_core.messages import (
     ToolMessage,
 )
 
-from agents.agents_definition import ChatAgent
+from agents import ChatAgent
 from controllers.database_controller import (
     AddAiMessage,
     AddToolMessage,
