@@ -4,7 +4,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
-from agents.agents_definition import ChatAgent
+from agents import ChatAgent
 from config.consts import CHAT_MODEL
 from controllers.chat_agent_controller import (
     _ai_message_content,

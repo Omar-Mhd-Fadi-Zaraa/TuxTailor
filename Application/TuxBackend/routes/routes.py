@@ -10,7 +10,7 @@ from langchain_core.messages import SystemMessage
 from pydantic_core import PydanticSerializationError
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
-from agents.agents_definition import ChatAgent
+from agents import ChatAgent
 from config import consts
 from controllers.chat_agent_controller import (
     get_chat_agent,
