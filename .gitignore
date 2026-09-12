@@ -10,4 +10,5 @@ build/
 **/seed_dummy_data.py
 **/.env
 CLAUDE.md
+config_contract.json
 docker_images/
